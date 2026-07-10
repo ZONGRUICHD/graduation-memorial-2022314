@@ -4,7 +4,8 @@
 
 - 网站：<https://2022314.xyz>
 - 源码目录：`site/`
-- 部署方式：GitHub Actions + GitHub Pages
+- 源码仓库：GitHub
+- 部署方式：Cloudflare Pages
 
 ## 本地运行
 
@@ -19,5 +20,6 @@ npm run dev
 ```powershell
 cd site
 npm test -- --run
+npm run lint
 npm run build
 ```
