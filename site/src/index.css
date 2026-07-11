@@ -359,7 +359,7 @@ img {
   margin: 0 auto;
   padding: 0 0 clamp(120px, 15vw, 208px);
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   border-top: 1px solid var(--rule-strong);
 }
 
@@ -387,7 +387,7 @@ img {
   padding-right: clamp(18px, 3vw, 48px);
 }
 
-.yearbook-actions .quote-button:last-child {
+.yearbook-actions .quote-button + .quote-button {
   padding-left: clamp(18px, 3vw, 48px);
   border-left: 1px solid var(--rule);
 }
@@ -496,6 +496,80 @@ img {
   counter-reset: gallery-photo;
 }
 
+.gallery-filters {
+  position: sticky;
+  top: calc(var(--header-height) + env(safe-area-inset-top));
+  z-index: calc(var(--z-header) - 1);
+  width: 100%;
+  border-bottom: 1px solid var(--rule);
+  background: rgba(244, 243, 238, 0.84);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+}
+
+.gallery-filter-track {
+  width: min(var(--content-max), calc(100% - var(--page-x) * 2));
+  min-height: 64px;
+  margin: 0 auto;
+  display: flex;
+  align-items: stretch;
+  gap: clamp(22px, 4vw, 56px);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.gallery-filter-track::-webkit-scrollbar {
+  display: none;
+}
+
+.gallery-filter-track button {
+  position: relative;
+  flex: 0 0 auto;
+  min-height: 64px;
+  padding: 0;
+  border: 0;
+  color: var(--muted);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.gallery-filter-track button::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 180ms ease-out;
+}
+
+.gallery-filter-track button[aria-pressed="true"] {
+  color: var(--ink);
+}
+
+.gallery-filter-track button[aria-pressed="true"]::after {
+  transform: scaleX(1);
+}
+
+.gallery-filter-track button:focus-visible,
+.gallery-photo-button:focus-visible,
+.photo-lightbox button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.gallery-filter-track span {
+  margin-left: 5px;
+  color: var(--muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
 .gallery-chapter {
   width: 100%;
   margin-bottom: clamp(96px, 13vw, 188px);
@@ -515,15 +589,205 @@ img {
 }
 
 .gallery-chapter figcaption {
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .gallery-chapter figcaption::before {
-  content: counter(gallery-photo, decimal-leading-zero) " / 137";
+  content: none;
+}
+
+.gallery-photo-button {
+  width: 100%;
+  padding: 0;
+  display: block;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.gallery-photo-button .memory-image {
+  transition: filter 180ms ease-out, transform 240ms ease-out;
+}
+
+.gallery-photo-button:hover .memory-image {
+  filter: brightness(0.96);
+  transform: scale(0.997);
+}
+
+.photo-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  color: #f4f3ee;
+  background: rgb(18, 20, 24);
+  animation: overlay-enter 180ms ease-out both;
+}
+
+.photo-lightbox-stage {
+  min-width: 0;
+  min-height: 0;
+  padding: max(72px, calc(env(safe-area-inset-top) + 58px)) clamp(64px, 8vw, 150px) 24px;
+  display: grid;
+  place-items: center;
+  touch-action: pan-y;
+}
+
+.photo-lightbox-image {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+.photo-lightbox-meta {
+  min-height: max(78px, calc(env(safe-area-inset-bottom) + 68px));
+  padding: 18px clamp(64px, 8vw, 150px) max(18px, env(safe-area-inset-bottom));
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 28px;
+  border-top: 1px solid rgba(244, 243, 238, 0.16);
+}
+
+.photo-lightbox-meta p {
+  margin: 0;
+  color: rgba(244, 243, 238, 0.68);
+  font-size: 12px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+
+.photo-lightbox-meta p:last-child {
+  color: #f4f3ee;
+}
+
+.photo-lightbox-close,
+.photo-lightbox-nav {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(244, 243, 238, 0.24);
+  border-radius: 50%;
+  color: #f4f3ee;
+  background: rgba(18, 20, 24, 0.44);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 160ms ease-out, background 160ms ease-out;
+}
+
+.photo-lightbox-close:hover,
+.photo-lightbox-nav:hover {
+  border-color: rgba(244, 243, 238, 0.62);
+  background: rgba(244, 243, 238, 0.1);
+}
+
+.photo-lightbox-close {
+  top: max(18px, env(safe-area-inset-top));
+  right: max(18px, env(safe-area-inset-right));
+  font-size: 30px;
+  line-height: 1;
+}
+
+.photo-lightbox-nav {
+  top: 50%;
+  margin-top: -24px;
+  font-size: 38px;
+  line-height: 1;
+}
+
+.photo-lightbox-prev {
+  left: max(18px, env(safe-area-inset-left));
+}
+
+.photo-lightbox-next {
+  right: max(18px, env(safe-area-inset-right));
+}
+
+.teacher-message-archive {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  overflow-y: auto;
+  color: var(--ink);
+  background: var(--paper);
+  animation: overlay-enter 180ms ease-out both;
+}
+
+.teacher-message-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  min-height: calc(var(--header-height) + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) var(--page-x) 0;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  border-bottom: 1px solid var(--rule);
+  background: rgba(244, 243, 238, 0.88);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.teacher-message-header p,
+.teacher-message-header h2 {
+  margin: 0;
+}
+
+.teacher-message-header p {
   color: var(--muted);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+}
+
+.teacher-message-header h2 {
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.teacher-message-header button {
+  justify-self: end;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  color: var(--ink);
+  background: transparent;
+  font: 30px/1 inherit;
+  cursor: pointer;
+}
+
+.teacher-message-list {
+  width: min(var(--reading-max), calc(100% - var(--page-x) * 2));
+  margin: 0 auto;
+  padding: clamp(84px, 11vw, 148px) 0 max(100px, env(safe-area-inset-bottom));
+}
+
+.teacher-message-list article {
+  padding: clamp(48px, 7vw, 88px) 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.teacher-message-list blockquote {
+  max-width: 23em;
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(26px, 4vw, 56px);
+  font-weight: 300;
+  line-height: 1.28;
+}
+
+.teacher-message-list article > p {
+  margin: 28px 0 0;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .quote-overlay {
@@ -864,8 +1128,8 @@ img {
     padding-bottom: 120px;
   }
 
-  .yearbook-actions .quote-button:first-child,
-  .yearbook-actions .quote-button:last-child {
+  .yearbook-actions .quote-button,
+  .yearbook-actions .quote-button + .quote-button {
     padding-right: 0;
     padding-left: 0;
     border-left: 0;
@@ -910,9 +1174,58 @@ img {
     padding-top: 76px;
   }
 
+  .gallery-filter-track {
+    width: 100%;
+    min-height: 56px;
+    padding: 0 var(--page-x);
+    gap: 26px;
+  }
+
+  .gallery-filter-track button {
+    min-height: 56px;
+    font-size: 13px;
+  }
+
   .gallery-chapter {
     margin-bottom: 92px;
     contain-intrinsic-size: auto 540px;
+  }
+
+  .photo-lightbox-stage {
+    padding: max(70px, calc(env(safe-area-inset-top) + 58px)) 0 12px;
+  }
+
+  .photo-lightbox-image {
+    width: 100%;
+    max-height: 100%;
+  }
+
+  .photo-lightbox-meta {
+    min-height: max(96px, calc(env(safe-area-inset-bottom) + 82px));
+    padding: 14px 72px max(14px, env(safe-area-inset-bottom));
+    display: block;
+    text-align: center;
+  }
+
+  .photo-lightbox-meta p + p {
+    margin-top: 4px;
+  }
+
+  .photo-lightbox-nav {
+    top: auto;
+    bottom: max(18px, env(safe-area-inset-bottom));
+    width: 44px;
+    height: 44px;
+    margin-top: 0;
+    font-size: 32px;
+  }
+
+  .photo-lightbox-prev {
+    left: max(14px, env(safe-area-inset-left));
+  }
+
+  .photo-lightbox-next {
+    right: max(14px, env(safe-area-inset-right));
   }
 
   .quote-archive-panel > h2 {
@@ -968,6 +1281,8 @@ img {
 
   .backdrop-glow,
   .quote-overlay,
+  .photo-lightbox,
+  .teacher-message-archive,
   .quote-stream {
     animation: none;
     will-change: auto;
@@ -976,6 +1291,9 @@ img {
   .blog-link::after,
   .quote-button::after,
   .gallery-archive-header .quote-button::before,
+  .gallery-filter-track button::after,
+  .gallery-photo-button .memory-image,
+  .photo-lightbox button,
   .quote-close {
     transition: none;
   }

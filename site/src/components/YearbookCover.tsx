@@ -18,7 +18,13 @@ const coverPhotos = [
   },
 ]
 
-export function YearbookCover({ onQuotes, onGallery }: { onQuotes: (trigger: HTMLButtonElement) => void; onGallery: () => void }) {
+type YearbookCoverProps = {
+  onQuotes: (trigger: HTMLButtonElement) => void
+  onGallery: () => void
+  onTeacherMessages?: (trigger: HTMLButtonElement) => void
+}
+
+export function YearbookCover({ onQuotes, onGallery, onTeacherMessages }: YearbookCoverProps) {
   return (
     <main className="yearbook cover" aria-labelledby="page-title">
       <section className="cover-chapter hero-section">
@@ -30,6 +36,9 @@ export function YearbookCover({ onQuotes, onGallery }: { onQuotes: (trigger: HTM
       <PhotoStory photos={coverPhotos} />
       <section className="yearbook-actions quote-control" aria-label="纪念册操作">
         <button className="quote-button" type="button" onClick={(event) => onQuotes(event.currentTarget)}>教师名言</button>
+        {onTeacherMessages ? (
+          <button className="quote-button" type="button" onClick={(event) => onTeacherMessages(event.currentTarget)}>老师寄语</button>
+        ) : null}
         <button className="quote-button" type="button" onClick={onGallery}>照片档案</button>
       </section>
     </main>

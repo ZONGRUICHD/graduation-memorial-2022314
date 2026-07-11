@@ -1,9 +1,17 @@
+export type GalleryCategory = 'graduation' | 'portrait' | 'campus' | 'activity'
+
 export type GalleryImage = {
+  id: string
   src: string
+  thumbnailSrc: string
   alt: string
+  category: GalleryCategory
+  caption: string
 }
 
-export const galleryImages: GalleryImage[] = [
+type RawGalleryImage = Pick<GalleryImage, 'src' | 'alt'>
+
+const rawGalleryImages: RawGalleryImage[] = [
   { src: '/assets/gallery/gallery-031.webp?v=20260525-1', alt: '909 graduation memorial photo 001' },
   { src: '/assets/gallery/gallery-090.webp?v=20260525-1', alt: '909 graduation memorial photo 002' },
   { src: '/assets/gallery/gallery-100.webp?v=20260525-1', alt: '909 graduation memorial photo 003' },
@@ -142,3 +150,46 @@ export const galleryImages: GalleryImage[] = [
   { src: '/assets/gallery/gallery-110.webp?v=20260526-1', alt: '909 graduation memorial photo 136' },
   { src: '/assets/gallery/gallery-121.webp?v=20260526-1', alt: '909 graduation memorial photo 137' },
 ]
+
+export const galleryCategories = [
+  { value: 'graduation', label: '毕业现场' },
+  { value: 'portrait', label: '师生合影' },
+  { value: 'campus', label: '校园日常' },
+  { value: 'activity', label: '活动瞬间' },
+] as const
+
+const graduationPhotos = new Set([
+  1, 9, 11, 15, 17, 18, 21, 22, 27, 28, 29, 32, 34, 41, 43, 44, 47, 52, 59, 60, 61, 65, 75, 83, 91, 95, 96, 98, 106, 119, 121, 126,
+])
+
+const portraitPhotos = new Set([
+  3, 14, 19, 20, 23, 25, 38, 54, 55, 56, 57, 66, 68, 70, 73, 84, 85, 86, 87, 92, 93, 104, 114, 115, 116, 117, 123, 129, 134, 135, 137,
+])
+
+const activityPhotos = new Set([
+  4, 5, 7, 8, 10, 13, 24, 26, 30, 31, 33, 35, 36, 37, 39, 40, 45, 48, 49, 58, 62, 63, 67, 69, 71, 72, 74, 79, 82, 88, 94, 99, 100, 102, 103, 105, 107, 109, 111, 112, 118, 120, 122, 124, 127, 128, 130, 131, 132, 133, 136,
+])
+
+function categoryFor(index: number): GalleryCategory {
+  if (graduationPhotos.has(index)) return 'graduation'
+  if (portraitPhotos.has(index)) return 'portrait'
+  if (activityPhotos.has(index)) return 'activity'
+  return 'campus'
+}
+
+export const galleryImages: GalleryImage[] = rawGalleryImages.map((image, itemIndex) => {
+  const index = itemIndex + 1
+  const category = categoryFor(index)
+  const categoryLabel = galleryCategories.find((item) => item.value === category)?.label ?? '校园日常'
+  const number = String(index).padStart(3, '0')
+  const id = image.src.match(/gallery-(\d+)/)?.[1] ?? number
+
+  return {
+    ...image,
+    id: `gallery-${id}`,
+    thumbnailSrc: `/assets/gallery/thumbs/gallery-${id}.webp`,
+    alt: `909班毕业纪念照片 ${number}`,
+    category,
+    caption: `${categoryLabel} · 照片 ${number}`,
+  }
+})
