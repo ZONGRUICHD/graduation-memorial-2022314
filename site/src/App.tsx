@@ -7,6 +7,7 @@ import { SeasonHome } from './components/SeasonHome'
 import { SiteChrome, type NavigationTarget } from './components/SiteChrome'
 import { prefersReducedMotion, ScrollTrigger } from './motion'
 import { teacherQuotes } from './teacherQuotes'
+import { shouldPlayIntro } from './introState'
 
 type HomeSection = Exclude<NavigationTarget, 'gallery'>
 type Route =
@@ -49,8 +50,10 @@ function focusWithoutScrolling(element: HTMLElement | null) {
 function App() {
   const [route, setRoute] = useState<Route>(routeFromLocation)
   const [showQuotes, setShowQuotes] = useState(false)
+  const [introComplete, setIntroComplete] = useState(() => !shouldPlayIntro())
   const scrollBehaviorRef = useRef<ScrollBehavior>('auto')
   const scrollRequestRef = useRef(0)
+  const handleIntroComplete = useCallback(() => setIntroComplete(true), [])
 
   const scrollToRoute = useCallback((nextRoute: Route, behavior: ScrollBehavior) => {
     const requestId = ++scrollRequestRef.current
@@ -138,7 +141,7 @@ function App() {
 
   return (
     <div className="memorial-page">
-      <IntroSequence />
+      <IntroSequence onComplete={handleIntroComplete} />
       <div
         className="site-surface"
         aria-hidden={showQuotes ? true : undefined}
@@ -153,6 +156,7 @@ function App() {
           <GalleryArchive onHome={() => navigate('top')} />
         ) : (
           <SeasonHome
+            introComplete={introComplete}
             onOpenQuotes={() => setShowQuotes(true)}
             onGallery={() => navigate('gallery')}
           />

@@ -7,11 +7,13 @@ import {
   prefersReducedMotion,
   ScrollTrigger,
   splitGraphemes,
+  supportsDesktopFinePointerMotion,
   useGSAP,
 } from '../motion'
 import { featuredTeacherQuotes } from '../teacherQuotes'
 
 type SeasonHomeProps = {
+  introComplete: boolean
   onOpenQuotes: (trigger: HTMLButtonElement) => void
   onGallery: () => void
 }
@@ -64,8 +66,7 @@ function MagneticButton({ children, className = '', ...props }: MagneticButtonPr
       const button = buttonRef.current
       if (!button || prefersReducedMotion()) return
 
-      const media = window.matchMedia(motionQueries.finePointer)
-      if (!media.matches) return
+      if (!supportsDesktopFinePointerMotion()) return
 
       const xTo = gsap.quickTo(button, 'x', { duration: 0.35, ease: 'power3.out' })
       const yTo = gsap.quickTo(button, 'y', { duration: 0.35, ease: 'power3.out' })
@@ -97,7 +98,7 @@ function MagneticButton({ children, className = '', ...props }: MagneticButtonPr
   )
 }
 
-function HeroScene({ onGallery }: Pick<SeasonHomeProps, 'onGallery'>) {
+function HeroScene({ introComplete, onGallery }: Pick<SeasonHomeProps, 'introComplete' | 'onGallery'>) {
   const rootRef = useRef<HTMLElement>(null)
 
   useGSAP(
@@ -106,13 +107,17 @@ function HeroScene({ onGallery }: Pick<SeasonHomeProps, 'onGallery'>) {
       if (!root) return
 
       const numberParts = root.querySelectorAll('.hero-scene__digit')
-      const image = root.querySelector<HTMLElement>('.hero-scene__image-wrap')
+      const number = root.querySelector<HTMLElement>('.hero-scene__number')
+      const stage = root.querySelector<HTMLElement>('.hero-scene__stage')
+      const imageWrap = root.querySelector<HTMLElement>('.hero-scene__image-wrap')
+      const image = root.querySelector<HTMLElement>('.hero-scene__image-wrap img')
       const labels = root.querySelectorAll('.hero-scene__eyebrow, .hero-scene__meta, .hero-scene__scroll')
 
       if (prefersReducedMotion()) {
-        gsap.set([numberParts, image, labels], { clearProps: 'all' })
+        gsap.set([numberParts, number, imageWrap, image, labels], { clearProps: 'all' })
         return
       }
+      if (!introComplete) return
 
       const intro = gsap.timeline({ defaults: { ease: 'power4.out' } })
       intro
@@ -121,7 +126,9 @@ function HeroScene({ onGallery }: Pick<SeasonHomeProps, 'onGallery'>) {
         .from(labels, { y: 22, autoAlpha: 0, duration: 0.55, stagger: 0.08 }, '<0.28')
 
       const mm = gsap.matchMedia()
-      mm.add(motionQueries.desktop, () => {
+      mm.add(motionQueries.desktopFinePointer, () => {
+        if (!supportsDesktopFinePointerMotion() || !imageWrap || !stage) return
+
         const scrollTimeline = gsap.timeline({
           defaults: { ease: 'none' },
           scrollTrigger: {
@@ -129,13 +136,13 @@ function HeroScene({ onGallery }: Pick<SeasonHomeProps, 'onGallery'>) {
             start: 'top top',
             end: '+=95%',
             scrub: 0.7,
-            pin: '.hero-scene__stage',
+            pin: stage,
             anticipatePin: 1,
           },
         })
 
         scrollTimeline
-          .to(image, { yPercent: 8, scale: 1.075 }, 0)
+          .to(imageWrap, { yPercent: 8, scale: 1.075 }, 0)
           .to(numberParts[0], { xPercent: -38 }, 0)
           .to(numberParts[1], { yPercent: -24 }, 0)
           .to(numberParts[2], { xPercent: 38 }, 0)
@@ -144,11 +151,32 @@ function HeroScene({ onGallery }: Pick<SeasonHomeProps, 'onGallery'>) {
         return () => scrollTimeline.kill()
       })
 
-      mm.add(motionQueries.finePointer, () => {
-        if (!image) return
+      mm.add(motionQueries.naturalScroll, () => {
+        if (!imageWrap || !number) return
 
-        const imageX = gsap.quickTo(image, 'x', { duration: 0.65, ease: 'power3.out' })
-        const imageY = gsap.quickTo(image, 'y', { duration: 0.65, ease: 'power3.out' })
+        const scrollTimeline = gsap.timeline({
+          defaults: { ease: 'none' },
+          scrollTrigger: {
+            trigger: root,
+            start: 'top top',
+            end: 'bottom top',
+            scrub: 0.35,
+          },
+        })
+
+        scrollTimeline
+          .to(imageWrap, { yPercent: 7, scale: 1.035 }, 0)
+          .to(number, { yPercent: -7 }, 0)
+          .to('.hero-scene__meta', { y: -18, autoAlpha: 0.35 }, 0.3)
+
+        return () => scrollTimeline.kill()
+      })
+
+      mm.add(motionQueries.desktopFinePointer, () => {
+        if (!supportsDesktopFinePointerMotion() || !imageWrap) return
+
+        const imageX = gsap.quickTo(imageWrap, 'x', { duration: 0.65, ease: 'power3.out' })
+        const imageY = gsap.quickTo(imageWrap, 'y', { duration: 0.65, ease: 'power3.out' })
         const onPointerMove = (event: PointerEvent) => {
           const bounds = root.getBoundingClientRect()
           imageX(((event.clientX - bounds.left) / bounds.width - 0.5) * 20)
@@ -172,7 +200,7 @@ function HeroScene({ onGallery }: Pick<SeasonHomeProps, 'onGallery'>) {
         mm.revert()
       }
     },
-    { scope: rootRef },
+    { scope: rootRef, dependencies: [introComplete], revertOnUpdate: true },
   )
 
   return (
@@ -289,7 +317,7 @@ function MemoryRun() {
       if (!root) return
       const scenes = gsap.utils.toArray<HTMLElement>('.memory-scene', root)
 
-      if (prefersReducedMotion() || !window.matchMedia(motionQueries.desktop).matches) {
+      if (prefersReducedMotion() || !supportsDesktopFinePointerMotion()) {
         gsap.set(scenes, { clearProps: 'all' })
         return
       }
@@ -364,7 +392,7 @@ function TrackSplit() {
 
   useGSAP(
     () => {
-      if (prefersReducedMotion() || !window.matchMedia(motionQueries.desktop).matches) return
+      if (prefersReducedMotion() || !supportsDesktopFinePointerMotion()) return
 
       gsap.fromTo(
         '.track-panel--inside img',
@@ -572,10 +600,10 @@ function SeasonEnding({ onGallery }: Pick<SeasonHomeProps, 'onGallery'>) {
   )
 }
 
-export function SeasonHome({ onOpenQuotes, onGallery }: SeasonHomeProps) {
+export function SeasonHome({ introComplete, onOpenQuotes, onGallery }: SeasonHomeProps) {
   return (
     <main className="season-home" id="main-content">
-      <HeroScene onGallery={onGallery} />
+      <HeroScene introComplete={introComplete} onGallery={onGallery} />
       <Manifesto />
       <MemoryRun />
       <TrackSplit />

@@ -1,7 +1,8 @@
 import { defineConfig } from '@playwright/test'
 
-const functionalTests = /^(?!.*@reduced)/
-const standardTests = /^(?!.*@(?:reduced|touch))/
+const functionalTests = /^(?!.*@(?:reduced|wide-touch))/
+const touchTests = /^(?!.*@(?:reduced|mobile-only|wide-touch))/
+const standardTests = /^(?!.*@(?:reduced|touch|mobile-only|wide-touch))/
 
 export default defineConfig({
   testDir: './e2e',
@@ -31,7 +32,7 @@ export default defineConfig({
     },
     {
       name: 'tablet-768',
-      grep: functionalTests,
+      grep: touchTests,
       use: { viewport: { width: 768, height: 1024 }, hasTouch: true },
     },
     {
@@ -47,6 +48,14 @@ export default defineConfig({
         hasTouch: true,
         isMobile: true,
         contextOptions: { reducedMotion: 'reduce' },
+      },
+    },
+    {
+      name: 'wide-touch-1024',
+      grep: /@wide-touch/,
+      use: {
+        viewport: { width: 1024, height: 768 },
+        hasTouch: true,
       },
     },
   ],

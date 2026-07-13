@@ -1,50 +1,57 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-import { gsap, prefersReducedMotion, useGSAP } from '../motion'
+import { markIntroSeen, shouldPlayIntro } from '../introState'
+import { gsap, useGSAP } from '../motion'
 
-const INTRO_SESSION_KEY = '909:intro:season-v1'
-
-function shouldPlayIntro() {
-  if (typeof window === 'undefined' || prefersReducedMotion()) return false
-
-  try {
-    return window.sessionStorage.getItem(INTRO_SESSION_KEY) !== 'seen'
-  } catch {
-    return true
-  }
+type IntroSequenceProps = {
+  onComplete: () => void
 }
 
-export function IntroSequence() {
+export function IntroSequence({ onComplete }: IntroSequenceProps) {
   const rootRef = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(shouldPlayIntro)
 
+  useEffect(() => {
+    if (!visible) onComplete()
+  }, [onComplete, visible])
+
   useGSAP(
     (_context, contextSafe) => {
-      if (!visible) return
+      const root = rootRef.current
+      if (!visible || !root) return
 
-      try {
-        window.sessionStorage.setItem(INTRO_SESSION_KEY, 'seen')
-      } catch {
-        // Storage can be unavailable in strict privacy modes; the intro still works.
+      let finished = false
+      const complete = () => {
+        if (finished) return
+        finished = true
+        markIntroSeen()
+        setVisible(false)
       }
-
-      const finish = contextSafe
-        ? contextSafe(() => setVisible(false))
-        : () => setVisible(false)
+      const finish = contextSafe ? contextSafe(complete) : complete
       const hardStop = window.setTimeout(finish, 900)
+      const bars = root.querySelectorAll('.intro-sequence__bar')
+      const mark = root.querySelector('.intro-sequence__mark')
       const timeline = gsap.timeline({
         defaults: { ease: 'power3.inOut' },
         onComplete: finish,
       })
 
       timeline
-        .fromTo('.intro-sequence__bar', { scaleX: 0 }, { scaleX: 1, duration: 0.32, stagger: 0.06 })
-        .fromTo('.intro-sequence__mark', { yPercent: 115 }, { yPercent: 0, duration: 0.34 }, '<0.08')
-        .to('.intro-sequence__mark', { yPercent: -115, duration: 0.26 }, '+=0.04')
-        .to('.intro-sequence', { yPercent: -100, duration: 0.36 }, '<')
+        .fromTo(bars, { scaleX: 0 }, { scaleX: 1, duration: 0.28, stagger: 0.04 })
+        .fromTo(mark, { yPercent: 115 }, { yPercent: 0, duration: 0.28 }, '<0.08')
+        .to(mark, { yPercent: -115, duration: 0.18 }, '+=0.12')
+        .to(root, { yPercent: -100, duration: 0.36 }, '<')
+
+      const finishOnIntent = () => finish()
+      window.addEventListener('pointerdown', finishOnIntent, { passive: true, once: true })
+      window.addEventListener('wheel', finishOnIntent, { passive: true, once: true })
+      window.addEventListener('keydown', finishOnIntent, { once: true })
 
       return () => {
         window.clearTimeout(hardStop)
+        window.removeEventListener('pointerdown', finishOnIntent)
+        window.removeEventListener('wheel', finishOnIntent)
+        window.removeEventListener('keydown', finishOnIntent)
         timeline.kill()
       }
     },

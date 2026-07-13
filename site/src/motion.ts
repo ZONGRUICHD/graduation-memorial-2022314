@@ -5,14 +5,18 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
 export const motionQueries = {
-  desktop: '(min-width: 900px)',
-  mobile: '(max-width: 899px)',
-  finePointer: '(hover: hover) and (pointer: fine)',
+  desktopFinePointer: '(min-width: 900px) and (hover: hover) and (pointer: fine)',
+  naturalScroll: '(max-width: 899px), (hover: none) and (pointer: coarse)',
   reduceMotion: '(prefers-reduced-motion: reduce)',
 } as const
 
 export function prefersReducedMotion() {
   return typeof window !== 'undefined' && window.matchMedia(motionQueries.reduceMotion).matches
+}
+
+export function supportsDesktopFinePointerMotion() {
+  return typeof window !== 'undefined'
+    && window.matchMedia(motionQueries.desktopFinePointer).matches
 }
 
 export function splitGraphemes(value: string) {

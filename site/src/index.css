@@ -74,6 +74,14 @@ body {
   object-fit: cover;
   object-position: 50% 42%;
   transform: scale(1.12);
+  animation: boot-hero-reveal 900ms var(--ease-out) both;
+}
+
+@keyframes boot-hero-reveal {
+  from {
+    opacity: 0.72;
+    transform: scale(1.16);
+  }
 }
 
 .boot-hero picture,
@@ -540,12 +548,14 @@ ul {
   position: relative;
   color: var(--ink);
   background: var(--paper);
+  touch-action: pan-y;
 }
 
 .hero-scene__stage {
   position: relative;
   min-height: 100svh;
   overflow: hidden;
+  overflow: clip;
   isolation: isolate;
 }
 
@@ -587,6 +597,7 @@ ul {
   width: 38%;
   height: 78svh;
   overflow: hidden;
+  overflow: clip;
   background: var(--blue);
   clip-path: polygon(8% 0, 100% 0, 93% 100%, 0 93%);
   will-change: transform;
@@ -1843,7 +1854,7 @@ ul {
   font-weight: 700;
 }
 
-@media (max-width: 899px) {
+@media (max-width: 899px), (hover: none) and (pointer: coarse) {
   .boot-hero img {
     top: 16svh;
     left: 10%;

@@ -18,10 +18,57 @@ async function openGallery(page: Page) {
   return heading
 }
 
-test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => {
-    window.sessionStorage.setItem('909:intro:season-v1', 'seen')
+const delay = (milliseconds: number) => new Promise<void>((resolve) => {
+  setTimeout(resolve, milliseconds)
+})
+
+async function dragPageUp(page: Page, holdTouch = false) {
+  const session = await page.context().newCDPSession(page)
+  const startY = 700
+  const endY = 180
+  const x = 195
+  const steps = 4
+
+  await session.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [{ x, y: startY, radiusX: 8, radiusY: 8, force: 1, id: 1 }],
   })
+
+  for (let index = 1; index <= steps; index += 1) {
+    const y = startY + ((endY - startY) * index / steps)
+    await session.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [{ x, y, radiusX: 8, radiusY: 8, force: 1, id: 1 }],
+    })
+    await delay(8)
+  }
+
+  const whileTouching = await page.evaluate(() => ({
+    introVisible: Boolean(document.querySelector('.intro-sequence')),
+    scrollY: Math.round(window.scrollY),
+  }))
+
+  if (!holdTouch) {
+    await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  }
+
+  return {
+    session,
+    whileTouching,
+    release: () => session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }),
+  }
+}
+
+test.beforeEach(async ({ page }, testInfo) => {
+  if (testInfo.title.includes('@first-visit')) {
+    await page.addInitScript(() => {
+      window.sessionStorage.removeItem('909:intro:season-v1')
+    })
+  } else {
+    await page.addInitScript(() => {
+      window.sessionStorage.setItem('909:intro:season-v1', 'seen')
+    })
+  }
 })
 
 test('home exposes the complete story and twelve memory-index entries', async ({ page }) => {
@@ -148,6 +195,102 @@ test('home and gallery never create horizontal page overflow', async ({ page }) 
 
   await page.goto('/#gallery', { waitUntil: 'domcontentloaded' })
   await expect.poll(hasNoHorizontalOverflow).toBe(true)
+})
+
+test('first visit intro leaves within 1.2s while native touch can scroll @mobile-only @first-visit', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'commit' })
+  const intro = page.locator('.intro-sequence')
+  await page.waitForFunction(() => {
+    const element = document.querySelector<HTMLElement>('.intro-sequence')
+    if (!element) return false
+    const style = getComputedStyle(element)
+    return style.display !== 'none' && style.visibility !== 'hidden'
+  }, undefined, { polling: 'raf' })
+
+  const introSeenAt = Date.now()
+  const scrollingPolicy = await intro.evaluate((element) => ({
+    overlayPointerEvents: getComputedStyle(element).pointerEvents,
+    htmlOverflowY: getComputedStyle(document.documentElement).overflowY,
+    bodyOverflowY: getComputedStyle(document.body).overflowY,
+    touchAction: getComputedStyle(document.documentElement).touchAction,
+  }))
+  expect(scrollingPolicy.overlayPointerEvents).toBe('none')
+  expect(scrollingPolicy.htmlOverflowY).not.toBe('hidden')
+  expect(scrollingPolicy.bodyOverflowY).not.toBe('hidden')
+  expect(scrollingPolicy.touchAction).not.toBe('none')
+
+  const { whileTouching, release } = await dragPageUp(page, true)
+  expect(whileTouching.scrollY).toBeGreaterThan(0)
+  await release()
+
+  const remainingBudget = 1_200 - (Date.now() - introSeenAt)
+  expect(remainingBudget).toBeGreaterThan(0)
+  await expect(intro).toHaveCount(0, { timeout: remainingBudget })
+})
+
+test('mobile hero transforms with scroll without creating a pin spacer @mobile-only', async ({ page }) => {
+  await openHome(page)
+  await delay(1_300)
+
+  const heroSelectors = [
+    '.hero-scene__stage',
+    '.hero-scene__image-wrap',
+    '.hero-scene__number',
+    '.hero-scene__meta',
+  ]
+  const readTransforms = () => page.evaluate((selectors) => selectors.map((selector) => {
+    const element = document.querySelector(selector)
+    return element ? getComputedStyle(element).transform : null
+  }), heroSelectors)
+  const before = await readTransforms()
+
+  expect(await page.locator('.pin-spacer').count()).toBe(0)
+  await dragPageUp(page)
+  await expect.poll(() => page.evaluate(() => Math.round(window.scrollY))).toBeGreaterThan(0)
+  await expect.poll(async () => JSON.stringify(await readTransforms())).not.toBe(JSON.stringify(before))
+  await expect(page.locator('.pin-spacer')).toHaveCount(0)
+})
+
+test('first visit has no console errors or missing intro GSAP target warning @mobile-only @first-visit', async ({ page }) => {
+  const consoleProblems: string[] = []
+  const pageErrors: string[] = []
+  page.on('console', (message) => {
+    if (message.type() === 'error' || message.type() === 'warning') {
+      consoleProblems.push(`${message.type()}: ${message.text()}`)
+    }
+  })
+  page.on('pageerror', (error) => pageErrors.push(error.message))
+
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
+  const intro = page.locator('.intro-sequence')
+  await expect(intro).toBeVisible()
+  await expect(intro).toHaveCount(0, { timeout: 1_200 })
+  await page.waitForLoadState('load')
+  await page.evaluate(() => new Promise<void>((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+  }))
+
+  expect(consoleProblems.filter((message) => message.includes('GSAP target .intro-sequence not found'))).toEqual([])
+  expect(consoleProblems).toEqual([])
+  expect(pageErrors).toEqual([])
+})
+
+test('wide coarse touch never pins the hero or MemoryRun @wide-touch', async ({ page }) => {
+  await openHome(page)
+  await expect.poll(() => page.evaluate(() => (
+    window.matchMedia('(hover: none) and (pointer: coarse)').matches
+  ))).toBe(true)
+
+  const memoryRun = page.locator('.memory-run')
+  await expect(memoryRun).toBeAttached()
+  await memoryRun.scrollIntoViewIfNeeded()
+  await page.evaluate(() => new Promise<void>((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+  }))
+
+  await expect(page.locator('.hero-scene .pin-spacer')).toHaveCount(0)
+  await expect(memoryRun.locator('.pin-spacer')).toHaveCount(0)
+  await expect(page.locator('.pin-spacer')).toHaveCount(0)
 })
 
 test('reduced motion keeps content available without intro or pinned spacers @reduced', async ({ page }) => {
