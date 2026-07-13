@@ -1,87 +1,166 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { teacherQuotes } from './teacherQuotes'
-import { teacherMessages } from './teacherMessages'
-import { DynamicBackdrop } from './components/DynamicBackdrop'
 import { GalleryArchive } from './components/GalleryArchive'
+import { IntroSequence } from './components/IntroSequence'
 import { QuoteArchive } from './components/QuoteArchive'
-import { TeacherMessageArchive } from './components/TeacherMessageArchive'
-import { YearbookCover } from './components/YearbookCover'
+import { SeasonHome } from './components/SeasonHome'
+import { SiteChrome, type NavigationTarget } from './components/SiteChrome'
+import { prefersReducedMotion, ScrollTrigger } from './motion'
+import { teacherQuotes } from './teacherQuotes'
 
-type Route = 'home' | 'gallery'
+type HomeSection = Exclude<NavigationTarget, 'gallery'>
+type Route =
+  | { view: 'home'; section: HomeSection }
+  | { view: 'gallery' }
 
-function currentRoute(): Route {
-  return typeof window !== 'undefined' && window.location.hash === '#gallery' ? 'gallery' : 'home'
+const homeSections = new Set<HomeSection>(['top', 'story', 'quotes', 'photos'])
+
+function routeFromLocation(): Route {
+  if (typeof window === 'undefined') return { view: 'home', section: 'top' }
+
+  const hash = window.location.hash.slice(1)
+  if (hash === 'gallery') return { view: 'gallery' }
+  if (homeSections.has(hash as HomeSection)) return { view: 'home', section: hash as HomeSection }
+  return { view: 'home', section: 'top' }
+}
+
+function urlForTarget(target: NavigationTarget) {
+  const base = `${window.location.pathname}${window.location.search}`
+  if (target === 'top') return base
+  return `${base}#${target}`
+}
+
+const focusTargetBySection: Record<HomeSection, string> = {
+  top: 'page-title',
+  story: 'story-title',
+  quotes: 'quotes-title',
+  photos: 'photos-title',
+}
+
+function focusWithoutScrolling(element: HTMLElement | null) {
+  if (!element) return
+  try {
+    element.focus({ preventScroll: true })
+  } catch {
+    element.focus()
+  }
 }
 
 function App() {
-  const [route, setRoute] = useState<Route>(currentRoute)
+  const [route, setRoute] = useState<Route>(routeFromLocation)
   const [showQuotes, setShowQuotes] = useState(false)
-  const [showTeacherMessages, setShowTeacherMessages] = useState(false)
-  const quoteTriggerRef = useRef<HTMLElement | null>(null)
-  const teacherMessageTriggerRef = useRef<HTMLElement | null>(null)
+  const scrollBehaviorRef = useRef<ScrollBehavior>('auto')
+  const scrollRequestRef = useRef(0)
 
-  useEffect(() => {
-    const syncRoute = () => setRoute(currentRoute())
-    window.addEventListener('hashchange', syncRoute)
-    return () => window.removeEventListener('hashchange', syncRoute)
-  }, [])
+  const scrollToRoute = useCallback((nextRoute: Route, behavior: ScrollBehavior) => {
+    const requestId = ++scrollRequestRef.current
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        if (requestId !== scrollRequestRef.current) return
+        if (document.querySelector('[role="dialog"][aria-modal="true"]')) return
 
-  const openGallery = useCallback(() => {
-    window.location.hash = 'gallery'
-    setRoute('gallery')
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [])
+        let heading: HTMLElement | null = null
+        ScrollTrigger.refresh()
 
-  const openHome = useCallback(() => {
-    window.history.pushState('', document.title, window.location.pathname + window.location.search)
-    setRoute('home')
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [])
+        if (nextRoute.view === 'gallery') {
+          heading = document.getElementById('gallery-title')
+          window.scrollTo({ top: 0, behavior })
+        } else {
+          const section = document.getElementById(nextRoute.section)
+          heading = document.getElementById(focusTargetBySection[nextRoute.section])
+          if (nextRoute.section === 'top') {
+            window.scrollTo({ top: 0, behavior })
+          } else {
+            section?.scrollIntoView({ block: 'start', behavior })
+          }
+        }
 
-  const openQuotes = (trigger: HTMLButtonElement) => {
-    quoteTriggerRef.current = trigger
-    setShowQuotes(true)
-  }
-
-  const closeQuotes = useCallback(() => {
-    setShowQuotes(false)
-    requestAnimationFrame(() => {
-      if (quoteTriggerRef.current?.isConnected) {
-        quoteTriggerRef.current.focus()
-      } else {
-        document.querySelector<HTMLElement>('.brand-control')?.focus()
-      }
+        window.requestAnimationFrame(() => {
+          if (requestId !== scrollRequestRef.current) return
+          if (document.querySelector('[role="dialog"][aria-modal="true"]')) return
+          focusWithoutScrolling(heading)
+        })
+      })
     })
   }, [])
 
-  const closeTeacherMessages = useCallback(() => {
-    setShowTeacherMessages(false)
-    requestAnimationFrame(() => teacherMessageTriggerRef.current?.focus())
+  useEffect(() => {
+    const syncRoute = () => {
+      scrollBehaviorRef.current = 'auto'
+      setRoute(routeFromLocation())
+    }
+
+    window.addEventListener('popstate', syncRoute)
+    window.addEventListener('hashchange', syncRoute)
+    return () => {
+      window.removeEventListener('popstate', syncRoute)
+      window.removeEventListener('hashchange', syncRoute)
+    }
   }, [])
+
+  useEffect(() => {
+    const requestedBehavior = scrollBehaviorRef.current
+    const behavior = prefersReducedMotion() ? 'auto' : requestedBehavior
+    scrollBehaviorRef.current = 'auto'
+    scrollToRoute(route, behavior)
+    document.title = route.view === 'gallery'
+      ? '909 照片档案｜高峰学校 2025 届毕业纪念'
+      : '909 青春赛季｜高峰学校 2025 届毕业纪念'
+  }, [route, scrollToRoute])
+
+  useEffect(() => {
+    let cancelled = false
+    document.fonts.ready.then(() => {
+      if (!cancelled) ScrollTrigger.refresh()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const navigate = useCallback((target: NavigationTarget) => {
+    const nextRoute: Route = target === 'gallery'
+      ? { view: 'gallery' }
+      : { view: 'home', section: target }
+    const nextUrl = urlForTarget(target)
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`
+    const behavior: ScrollBehavior = prefersReducedMotion() ? 'auto' : 'smooth'
+
+    if (currentUrl === nextUrl) {
+      scrollToRoute(nextRoute, behavior)
+      return
+    }
+
+    window.history.pushState(null, '', nextUrl)
+    scrollBehaviorRef.current = behavior
+    setRoute(nextRoute)
+  }, [scrollToRoute])
 
   return (
     <div className="memorial-page">
-      <DynamicBackdrop />
-      <header className="site-header">
-        <button className="brand brand-control" type="button" onClick={openHome}>毕业纪念</button>
-        <a className="blog-link" href="https://zongtech.xyz/" rel="noopener">个人博客</a>
-      </header>
-      {route === 'gallery' ? (
-        <GalleryArchive onHome={openHome} />
-      ) : (
-        <YearbookCover
-          onQuotes={openQuotes}
-          onGallery={openGallery}
-          onTeacherMessages={teacherMessages.length > 0 ? (trigger) => {
-            teacherMessageTriggerRef.current = trigger
-            setShowTeacherMessages(true)
-          } : undefined}
+      <IntroSequence />
+      <div
+        className="site-surface"
+        aria-hidden={showQuotes ? true : undefined}
+        inert={showQuotes ? true : undefined}
+      >
+        <SiteChrome
+          currentView={route.view}
+          currentSection={route.view === 'home' ? route.section : undefined}
+          onNavigate={navigate}
         />
-      )}
-      <footer className="signature">Designed by ZongRui</footer>
-      {showQuotes ? <QuoteArchive teacherQuotes={teacherQuotes} onClose={closeQuotes} /> : null}
-      {showTeacherMessages ? <TeacherMessageArchive messages={teacherMessages} onClose={closeTeacherMessages} /> : null}
+        {route.view === 'gallery' ? (
+          <GalleryArchive onHome={() => navigate('top')} />
+        ) : (
+          <SeasonHome
+            onOpenQuotes={() => setShowQuotes(true)}
+            onGallery={() => navigate('gallery')}
+          />
+        )}
+      </div>
+      {showQuotes ? (
+        <QuoteArchive teacherQuotes={teacherQuotes} onClose={() => setShowQuotes(false)} />
+      ) : null}
     </div>
   )
 }

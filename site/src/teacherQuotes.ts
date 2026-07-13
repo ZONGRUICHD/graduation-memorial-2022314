@@ -1,4 +1,11 @@
-export const teacherQuotes = [
+export type TeacherQuote = {
+  id: string
+  text: string
+  author: string | null
+  featured: boolean
+}
+
+const rawTeacherQuotes = [
   "人才！——lgh",
   "你们屏蔽我！——lgh",
   "头！！！——lgh",
@@ -103,3 +110,38 @@ export const teacherQuotes = [
   "不要在这里待着，要下雨了，听到没有？",
   "XXX，快回去，要下雨了！",
 ]
+
+const featuredQuoteIds = new Set([
+  'quote-001',
+  'quote-008',
+  'quote-036',
+  'quote-041',
+  'quote-045',
+  'quote-050',
+  'quote-052',
+  'quote-056',
+  'quote-065',
+  'quote-069',
+  'quote-084',
+  'quote-102',
+])
+
+function splitQuote(rawQuote: string): Pick<TeacherQuote, 'text' | 'author'> {
+  const attributedQuote = rawQuote.match(/^(.*)——([^—\s]+)$/u)
+
+  return attributedQuote
+    ? { text: attributedQuote[1], author: attributedQuote[2] }
+    : { text: rawQuote, author: null }
+}
+
+export const teacherQuotes: TeacherQuote[] = rawTeacherQuotes.map((rawQuote, index) => {
+  const id = `quote-${String(index + 1).padStart(3, '0')}`
+
+  return {
+    id,
+    ...splitQuote(rawQuote),
+    featured: featuredQuoteIds.has(id),
+  }
+})
+
+export const featuredTeacherQuotes = teacherQuotes.filter((quote) => quote.featured)

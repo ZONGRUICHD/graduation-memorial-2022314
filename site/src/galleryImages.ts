@@ -4,9 +4,14 @@ export type GalleryImage = {
   id: string
   src: string
   thumbnailSrc: string
+  width: number
+  height: number
+  thumbnailWidth: number
+  thumbnailHeight: number
   alt: string
   category: GalleryCategory
   caption: string
+  featured: boolean
 }
 
 type RawGalleryImage = Pick<GalleryImage, 'src' | 'alt'>
@@ -170,11 +175,89 @@ const activityPhotos = new Set([
   4, 5, 7, 8, 10, 13, 24, 26, 30, 31, 33, 35, 36, 37, 39, 40, 45, 48, 49, 58, 62, 63, 67, 69, 71, 72, 74, 79, 82, 88, 94, 99, 100, 102, 103, 105, 107, 109, 111, 112, 118, 120, 122, 124, 127, 128, 130, 131, 132, 133, 136,
 ])
 
+type GalleryDimensions = Pick<
+  GalleryImage,
+  'width' | 'height' | 'thumbnailWidth' | 'thumbnailHeight'
+>
+
+const galleryDimensionGroups: Array<GalleryDimensions & { ids: ReadonlySet<string> }> = [
+  {
+    ids: new Set([
+      '001', '002', '005', '007', '009', '010', '011', '014', '016', '017', '018', '019', '022', '023', '026', '028', '030', '032', '035', '037', '045', '055', '059', '064', '116', '117', '118', '119', '120', '121', '122', '123', '124', '125', '126', '127', '128', '129', '130',
+    ]),
+    width: 1500,
+    height: 1000,
+    thumbnailWidth: 750,
+    thumbnailHeight: 500,
+  },
+  {
+    ids: new Set([
+      '003', '004', '006', '008', '013', '015', '021', '024', '025', '027', '029', '031', '034', '038', '039', '040', '043', '046', '049', '051', '053', '054', '056', '057', '060', '061', '063', '066', '067', '073', '074', '076', '078', '079', '081', '083', '084', '086', '087', '088', '091', '092', '093', '095', '098', '100', '136', '137', '138', '139',
+    ]),
+    width: 1465,
+    height: 1100,
+    thumbnailWidth: 750,
+    thumbnailHeight: 563,
+  },
+  {
+    ids: new Set([
+      '012', '047', '048', '050', '058', '065', '068', '070', '072', '080', '090', '096', '097', '101', '102', '103', '104', '105', '106', '107', '108', '109', '110', '111', '112', '113', '114', '115',
+    ]),
+    width: 1500,
+    height: 846,
+    thumbnailWidth: 750,
+    thumbnailHeight: 423,
+  },
+  {
+    ids: new Set(['020', '041', '042', '044', '052', '062', '069', '075', '082', '085', '134', '135']),
+    width: 1467,
+    height: 1100,
+    thumbnailWidth: 750,
+    thumbnailHeight: 562,
+  },
+  {
+    ids: new Set(['036', '071', '089', '131', '132', '133']),
+    width: 1500,
+    height: 844,
+    thumbnailWidth: 750,
+    thumbnailHeight: 422,
+  },
+  {
+    ids: new Set(['094', '099']),
+    width: 619,
+    height: 1100,
+    thumbnailWidth: 619,
+    thumbnailHeight: 1100,
+  },
+]
+
 function categoryFor(index: number): GalleryCategory {
   if (graduationPhotos.has(index)) return 'graduation'
   if (portraitPhotos.has(index)) return 'portrait'
   if (activityPhotos.has(index)) return 'activity'
   return 'campus'
+}
+
+function dimensionsFor(id: string): GalleryDimensions {
+  const group = galleryDimensionGroups.find((candidate) => candidate.ids.has(id))
+
+  if (!group) {
+    throw new Error(`Missing dimensions for gallery image ${id}`)
+  }
+
+  return {
+    width: group.width,
+    height: group.height,
+    thumbnailWidth: group.thumbnailWidth,
+    thumbnailHeight: group.thumbnailHeight,
+  }
+}
+
+const featuredCountByCategory: Record<GalleryCategory, number> = {
+  graduation: 0,
+  portrait: 0,
+  campus: 0,
+  activity: 0,
 }
 
 export const galleryImages: GalleryImage[] = rawGalleryImages.map((image, itemIndex) => {
@@ -183,13 +266,22 @@ export const galleryImages: GalleryImage[] = rawGalleryImages.map((image, itemIn
   const categoryLabel = galleryCategories.find((item) => item.value === category)?.label ?? '校园日常'
   const number = String(index).padStart(3, '0')
   const id = image.src.match(/gallery-(\d+)/)?.[1] ?? number
+  const featured = featuredCountByCategory[category] < 3
+
+  if (featured) {
+    featuredCountByCategory[category] += 1
+  }
 
   return {
     ...image,
     id: `gallery-${id}`,
     thumbnailSrc: `/assets/gallery/thumbs/gallery-${id}.webp`,
+    ...dimensionsFor(id),
     alt: `909班毕业纪念照片 ${number}`,
     category,
     caption: `${categoryLabel} · 照片 ${number}`,
+    featured,
   }
 })
+
+export const featuredGalleryImages = galleryImages.filter((image) => image.featured)

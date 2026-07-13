@@ -1,78 +1,89 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useId, useRef, type TouchEvent } from 'react'
 
 import type { GalleryImage } from '../galleryImages'
+import { useModalDialog } from './useModalDialog'
 
-type PhotoLightboxProps = {
+export type PhotoLightboxProps = {
   images: GalleryImage[]
   index: number
   onChange: (index: number) => void
   onClose: () => void
+  returnFocus?: () => HTMLElement | null
 }
 
-export function PhotoLightbox({ images, index, onChange, onClose }: PhotoLightboxProps) {
-  const closeRef = useRef<HTMLButtonElement>(null)
-  const touchStart = useRef({ x: 0, y: 0 })
-  const indexRef = useRef(index)
-  const image = images[index]
+function wrapIndex(index: number, length: number) {
+  return ((index % length) + length) % length
+}
 
-  useEffect(() => {
-    indexRef.current = index
-  }, [index])
+export function PhotoLightbox({ images, index, onChange, onClose, returnFocus }: PhotoLightboxProps) {
+  const titleId = useId()
+  const captionId = useId()
+  const touchStart = useRef({ x: 0, y: 0 })
+  const dialogRef = useModalDialog<HTMLDivElement>(onClose, returnFocus)
+  const imageCount = images.length
+  const safeIndex = imageCount > 0 ? wrapIndex(index, imageCount) : 0
+  const image = images[safeIndex]
 
   const move = useCallback((direction: -1 | 1) => {
-    onChange((indexRef.current + direction + images.length) % images.length)
-  }, [images.length, onChange])
+    if (imageCount < 2) return
+    onChange(wrapIndex(safeIndex + direction, imageCount))
+  }, [imageCount, onChange, safeIndex])
 
   useEffect(() => {
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    closeRef.current?.focus()
+    if (imageCount < 2) return
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
-      if (event.key === 'ArrowLeft') move(-1)
-      if (event.key === 'ArrowRight') move(1)
-      if (event.key !== 'Tab') return
-
-      const controls = Array.from(document.querySelectorAll<HTMLElement>('.photo-lightbox button:not([disabled])'))
-      if (controls.length === 0) return
-      const first = controls[0]
-      const last = controls[controls.length - 1]
-      if (event.shiftKey && document.activeElement === first) {
+    const handleArrowKeys = (event: KeyboardEvent) => {
+      if (event.key === 'ArrowLeft') {
         event.preventDefault()
-        last.focus()
-      } else if (!event.shiftKey && document.activeElement === last) {
+        move(-1)
+      } else if (event.key === 'ArrowRight') {
         event.preventDefault()
-        first.focus()
+        move(1)
       }
     }
 
-    window.addEventListener('keydown', handleKeyDown)
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = previousOverflow
-    }
-  }, [move, onClose])
+    document.addEventListener('keydown', handleArrowKeys)
+    return () => document.removeEventListener('keydown', handleArrowKeys)
+  }, [imageCount, move])
 
   useEffect(() => {
-    const preload = (offset: -1 | 1) => {
-      const next = new Image()
-      next.src = images[(index + offset + images.length) % images.length].src
-    }
-    preload(-1)
-    preload(1)
-  }, [images, index])
+    if (imageCount < 2) return
 
-  const handleTouchEnd = (event: React.TouchEvent) => {
+    const adjacentSources = new Set([
+      images[wrapIndex(safeIndex - 1, imageCount)].src,
+      images[wrapIndex(safeIndex + 1, imageCount)].src,
+    ])
+
+    adjacentSources.forEach((src) => {
+      const adjacentImage = new Image()
+      adjacentImage.decoding = 'async'
+      adjacentImage.src = src
+    })
+  }, [imageCount, images, safeIndex])
+
+  if (image === undefined) return null
+
+  const handleTouchEnd = (event: TouchEvent<HTMLDivElement>) => {
     const touch = event.changedTouches[0]
     const deltaX = touch.clientX - touchStart.current.x
     const deltaY = touch.clientY - touchStart.current.y
+
     if (Math.abs(deltaX) < 52 || Math.abs(deltaX) < Math.abs(deltaY) * 1.2) return
     move(deltaX < 0 ? 1 : -1)
   }
 
   return (
-    <div className="photo-lightbox" role="dialog" aria-modal="true" aria-label="照片查看器">
+    <div
+      ref={dialogRef}
+      className="photo-lightbox"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      aria-describedby={captionId}
+      tabIndex={-1}
+    >
+      <h2 className="sr-only" id={titleId}>照片查看器</h2>
+
       <div
         className="photo-lightbox-stage"
         onTouchStart={(event) => {
@@ -81,15 +92,54 @@ export function PhotoLightbox({ images, index, onChange, onClose }: PhotoLightbo
         }}
         onTouchEnd={handleTouchEnd}
       >
-        <img className="photo-lightbox-image" src={image.src} alt={image.alt} decoding="async" />
+        <figure className="photo-lightbox-figure">
+          <img
+            className="photo-lightbox-image"
+            src={image.src}
+            width={image.width}
+            height={image.height}
+            alt={image.alt}
+            decoding="async"
+            fetchPriority="high"
+            draggable="false"
+          />
+          <figcaption className="photo-lightbox-meta" id={captionId}>
+            <span aria-live="polite" aria-atomic="true">{safeIndex + 1} / {imageCount}</span>
+            <span>{image.caption}</span>
+          </figcaption>
+        </figure>
       </div>
-      <div className="photo-lightbox-meta">
-        <p aria-live="polite">{index + 1} / {images.length}</p>
-        <p>{image.caption}</p>
-      </div>
-      <button ref={closeRef} className="photo-lightbox-close" type="button" aria-label="关闭照片查看器" onClick={onClose}>×</button>
-      <button className="photo-lightbox-nav photo-lightbox-prev" type="button" aria-label="上一张照片" onClick={() => move(-1)}>‹</button>
-      <button className="photo-lightbox-nav photo-lightbox-next" type="button" aria-label="下一张照片" onClick={() => move(1)}>›</button>
+
+      <button
+        className="photo-lightbox-close"
+        type="button"
+        aria-label="关闭照片查看器"
+        data-dialog-initial-focus
+        onClick={onClose}
+      >
+        <span aria-hidden="true">×</span>
+        <span className="photo-lightbox-control-label">关闭</span>
+      </button>
+      <button
+        className="photo-lightbox-nav photo-lightbox-prev"
+        type="button"
+        aria-label="上一张照片"
+        disabled={imageCount < 2}
+        onClick={() => move(-1)}
+      >
+        <span aria-hidden="true">←</span>
+        <span className="photo-lightbox-control-label">上一张</span>
+      </button>
+      <button
+        className="photo-lightbox-nav photo-lightbox-next"
+        type="button"
+        aria-label="下一张照片"
+        disabled={imageCount < 2}
+        onClick={() => move(1)}
+      >
+        <span className="photo-lightbox-control-label">下一张</span>
+        <span aria-hidden="true">→</span>
+      </button>
     </div>
   )
 }
