@@ -72,7 +72,7 @@ body {
   width: 38%;
   height: 78svh;
   object-fit: cover;
-  object-position: 50% 42%;
+  object-position: 18% 42%;
   transform: scale(1.12);
   animation: boot-hero-reveal 900ms var(--ease-out) both;
 }
@@ -615,7 +615,7 @@ ul {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: 50% 42%;
+  object-position: 18% 42%;
 }
 
 .hero-scene__image-tag {

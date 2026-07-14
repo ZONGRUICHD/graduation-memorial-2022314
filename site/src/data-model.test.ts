@@ -33,6 +33,14 @@ describe('gallery image data', () => {
       thumbnailWidth: 619,
       thumbnailHeight: 1100,
     })
+    expect(galleryImages.find((image) => image.id === 'gallery-085')).toMatchObject({
+      src: '/assets/gallery/gallery-085.webp?v=20260714-1',
+      thumbnailSrc: '/assets/gallery/thumbs/gallery-085.webp?v=20260714-1',
+      width: 1467,
+      height: 1100,
+      thumbnailWidth: 750,
+      thumbnailHeight: 562,
+    })
   })
 
   it('features exactly the first three photos in each category', () => {

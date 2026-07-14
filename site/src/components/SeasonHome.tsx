@@ -212,16 +212,16 @@ function HeroScene({ introComplete, onGallery }: Pick<SeasonHomeProps, 'introCom
           <picture>
             <source
               media="(max-width: 520px)"
-              srcSet="/assets/graduation-ceremony-20250701-portrait-768.webp 768w, /assets/graduation-ceremony-20250701-portrait-864.webp 864w"
+              srcSet="/assets/hero-classroom-909-portrait-480.webp 480w, /assets/hero-classroom-909-portrait-630.webp 630w"
               sizes="92vw"
             />
             <img
-              src="/assets/graduation-ceremony-20250701-1280.webp"
-              srcSet="/assets/graduation-ceremony-20250701-768.webp 768w, /assets/graduation-ceremony-20250701-1280.webp 1280w, /assets/graduation-ceremony-20250701.webp 1600w"
+              src="/assets/hero-classroom-909.webp"
+              srcSet="/assets/hero-classroom-909-768.webp 768w, /assets/hero-classroom-909.webp 1134w"
               sizes="(max-width: 899px) 142vw, 68vw"
-              alt="909毕业典礼现场合影"
-              width="1600"
-              height="1201"
+              alt="909班教室门口与九班班牌"
+              width="1134"
+              height="874"
               fetchPriority="high"
               decoding="async"
             />

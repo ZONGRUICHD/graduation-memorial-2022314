@@ -28,7 +28,7 @@ const rawGalleryImages: RawGalleryImage[] = [
   { src: '/assets/gallery/gallery-083.webp?v=20260525-1', alt: '909 graduation memorial photo 009' },
   { src: '/assets/gallery/gallery-108.webp?v=20260526-1', alt: '909 graduation memorial photo 010' },
   { src: '/assets/gallery/gallery-138.webp?v=20260526-1', alt: '909 graduation memorial photo 011' },
-  { src: '/assets/gallery/gallery-085.webp?v=20260525-1', alt: '909 graduation memorial photo 012' },
+  { src: '/assets/gallery/gallery-085.webp?v=20260714-1', alt: '909 graduation memorial photo 012' },
   { src: '/assets/gallery/gallery-068.webp?v=20260525-1', alt: '909 graduation memorial photo 013' },
   { src: '/assets/gallery/gallery-106.webp?v=20260526-1', alt: '909 graduation memorial photo 014' },
   { src: '/assets/gallery/gallery-063.webp?v=20260525-1', alt: '909 graduation memorial photo 015' },
@@ -275,7 +275,7 @@ export const galleryImages: GalleryImage[] = rawGalleryImages.map((image, itemIn
   return {
     ...image,
     id: `gallery-${id}`,
-    thumbnailSrc: `/assets/gallery/thumbs/gallery-${id}.webp`,
+    thumbnailSrc: `/assets/gallery/thumbs/gallery-${id}.webp${id === '085' ? '?v=20260714-1' : ''}`,
     ...dimensionsFor(id),
     alt: `909班毕业纪念照片 ${number}`,
     category,
