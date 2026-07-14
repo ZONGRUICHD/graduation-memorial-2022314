@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { markIntroSeen, shouldPlayIntro } from '../introState'
+import { shouldPlayIntro } from '../introState'
 import { gsap, useGSAP } from '../motion'
 
 type IntroSequenceProps = {
@@ -24,7 +24,6 @@ export function IntroSequence({ onComplete }: IntroSequenceProps) {
       const complete = () => {
         if (finished) return
         finished = true
-        markIntroSeen()
         setVisible(false)
       }
       const finish = contextSafe ? contextSafe(complete) : complete

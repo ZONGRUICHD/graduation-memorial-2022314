@@ -59,18 +59,6 @@ async function dragPageUp(page: Page, holdTouch = false) {
   }
 }
 
-test.beforeEach(async ({ page }, testInfo) => {
-  if (testInfo.title.includes('@first-visit')) {
-    await page.addInitScript(() => {
-      window.sessionStorage.removeItem('909:intro:season-v1')
-    })
-  } else {
-    await page.addInitScript(() => {
-      window.sessionStorage.setItem('909:intro:season-v1', 'seen')
-    })
-  }
-})
-
 test('home exposes the complete story and twelve memory-index entries', async ({ page }) => {
   await openHome(page)
 
@@ -197,7 +185,7 @@ test('home and gallery never create horizontal page overflow', async ({ page }) 
   await expect.poll(hasNoHorizontalOverflow).toBe(true)
 })
 
-test('first visit intro leaves within 1.2s while native touch can scroll @mobile-only @first-visit', async ({ page }) => {
+test('intro leaves within 1.2s while native touch can scroll @mobile-only', async ({ page }) => {
   await page.goto('/', { waitUntil: 'commit' })
   const intro = page.locator('.intro-sequence')
   await page.waitForFunction(() => {
@@ -251,7 +239,22 @@ test('mobile hero transforms with scroll without creating a pin spacer @mobile-o
   await expect(page.locator('.pin-spacer')).toHaveCount(0)
 })
 
-test('first visit has no console errors or missing intro GSAP target warning @mobile-only @first-visit', async ({ page }) => {
+test('intro replays after a full reload even with the legacy session marker', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.sessionStorage.setItem('909:intro:season-v1', 'seen')
+  })
+
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
+  const intro = page.locator('.intro-sequence')
+  await expect(intro).toBeVisible()
+  await expect(intro).toHaveCount(0, { timeout: 1_200 })
+
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await expect(intro).toBeVisible()
+  await expect(intro).toHaveCount(0, { timeout: 1_200 })
+})
+
+test('intro has no console errors or missing GSAP target warning @mobile-only', async ({ page }) => {
   const consoleProblems: string[] = []
   const pageErrors: string[] = []
   page.on('console', (message) => {
@@ -271,6 +274,12 @@ test('first visit has no console errors or missing intro GSAP target warning @mo
   }))
 
   expect(consoleProblems.filter((message) => message.includes('GSAP target .intro-sequence not found'))).toEqual([])
+  expect(consoleProblems).toEqual([])
+  expect(pageErrors).toEqual([])
+
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await expect(intro).toBeVisible()
+  await expect(intro).toHaveCount(0, { timeout: 1_200 })
   expect(consoleProblems).toEqual([])
   expect(pageErrors).toEqual([])
 })
@@ -300,6 +309,9 @@ test('reduced motion keeps content available without intro or pinned spacers @re
   await expect(page.locator('.intro-sequence')).toHaveCount(0)
   await expect(page.locator('.pin-spacer')).toHaveCount(0)
   await expect(page.locator('.memory-index__item')).toHaveCount(12)
+
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await expect(page.locator('.intro-sequence')).toHaveCount(0)
 
   await page.getByRole('button', { name: '打开网站目录' }).click()
   await page.getByRole('dialog', { name: '网站目录' }).getByRole('button', { name: /记忆索引/ }).click()
