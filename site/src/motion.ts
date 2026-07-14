@@ -8,6 +8,9 @@ export const motionQueries = {
   desktopFinePointer: '(min-width: 900px) and (hover: hover) and (pointer: fine)',
   naturalScroll: '(max-width: 899px), (hover: none) and (pointer: coarse)',
   reduceMotion: '(prefers-reduced-motion: reduce)',
+  allowMotion: '(prefers-reduced-motion: no-preference)',
+  desktopFinePointerMotion: '(min-width: 900px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)',
+  naturalScrollMotion: '(max-width: 899px) and (prefers-reduced-motion: no-preference), (hover: none) and (pointer: coarse) and (prefers-reduced-motion: no-preference)',
 } as const
 
 export function prefersReducedMotion() {

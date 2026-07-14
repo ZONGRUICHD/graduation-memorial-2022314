@@ -45,6 +45,7 @@ export function GalleryArchive({ onHome }: GalleryArchiveProps) {
       <main
         id="main-content"
         className="yearbook gallery-archive"
+        tabIndex={-1}
         aria-labelledby="gallery-title"
         aria-hidden={selectedIndex !== null ? true : undefined}
         inert={selectedIndex !== null ? true : undefined}
@@ -53,8 +54,8 @@ export function GalleryArchive({ onHome }: GalleryArchiveProps) {
           <div className="gallery-archive-header__copy">
             <p className="section-kicker">909 MEMORY INDEX · 2025</p>
             <h1 id="gallery-title" tabIndex={-1}>
-              <span>909</span>
-              照片档案
+              <span className="gallery-title__number">909</span>
+              <span className="gallery-title__label">照片档案</span>
             </h1>
             <p className="gallery-count" aria-live="polite" aria-atomic="true">
               {visibleImages.length} 张照片

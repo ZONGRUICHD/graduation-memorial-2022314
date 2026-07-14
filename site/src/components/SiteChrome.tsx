@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type MouseEvent } from 'react'
 
-import { gsap, prefersReducedMotion, useGSAP } from '../motion'
+import { gsap, motionQueries, prefersReducedMotion, useGSAP } from '../motion'
 
 export type NavigationTarget = 'top' | 'story' | 'quotes' | 'photos' | 'gallery'
 
@@ -57,11 +57,27 @@ export function SiteChrome({ currentView, currentSection, onNavigate }: SiteChro
     const panel = panelRef.current
     const trigger = triggerRef.current
     const previousOverflow = document.body.style.overflow
+    const previousRootOverflow = document.documentElement.style.overflow
+    const isolatedElements = [
+      document.getElementById('main-content'),
+      rootRef.current?.querySelector<HTMLElement>('.site-mark') ?? null,
+      rootRef.current?.querySelector<HTMLElement>('.site-chrome__actions') ?? null,
+    ].filter((element): element is HTMLElement => element !== null)
+    const isolatedStates = isolatedElements.map((element) => ({
+      element,
+      inert: element.inert,
+      ariaHidden: element.getAttribute('aria-hidden'),
+    }))
     const focusable = Array.from(
       panel.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'),
     )
 
     document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+    isolatedElements.forEach((element) => {
+      element.inert = true
+      element.setAttribute('aria-hidden', 'true')
+    })
     restoreFocusRef.current = true
     window.requestAnimationFrame(() => focusable[0]?.focus())
 
@@ -76,10 +92,10 @@ export function SiteChrome({ currentView, currentSection, onNavigate }: SiteChro
       const first = focusable[0]
       const last = focusable[focusable.length - 1]
 
-      if (event.shiftKey && document.activeElement === first) {
+      if (event.shiftKey && (document.activeElement === first || !panel.contains(document.activeElement))) {
         event.preventDefault()
         last.focus()
-      } else if (!event.shiftKey && document.activeElement === last) {
+      } else if (!event.shiftKey && (document.activeElement === last || !panel.contains(document.activeElement))) {
         event.preventDefault()
         first.focus()
       }
@@ -89,25 +105,40 @@ export function SiteChrome({ currentView, currentSection, onNavigate }: SiteChro
     return () => {
       document.removeEventListener('keydown', onKeyDown)
       document.body.style.overflow = previousOverflow
+      document.documentElement.style.overflow = previousRootOverflow
+      isolatedStates.forEach(({ element, inert, ariaHidden }) => {
+        element.inert = inert
+        if (ariaHidden === null) element.removeAttribute('aria-hidden')
+        else element.setAttribute('aria-hidden', ariaHidden)
+      })
       if (restoreFocusRef.current) window.requestAnimationFrame(() => trigger?.focus())
     }
   }, [open])
 
   useGSAP(
     () => {
-      if (!open || prefersReducedMotion()) return
+      if (!open) return
+      const animated = rootRef.current?.querySelectorAll('.menu-panel__wash, .menu-panel__item, .menu-panel__footer')
+      const mm = gsap.matchMedia()
 
-      const timeline = gsap.timeline({ defaults: { ease: 'power4.out' } })
-      timeline
-        .fromTo('.menu-panel__wash', { scaleY: 0 }, { scaleY: 1, duration: 0.5, stagger: 0.06 })
-        .fromTo(
-          '.menu-panel__item, .menu-panel__footer',
-          { yPercent: 45, opacity: 0 },
-          { yPercent: 0, opacity: 1, duration: 0.55, stagger: 0.055 },
-          '-=0.24',
-        )
+      mm.add(motionQueries.allowMotion, () => {
+        const timeline = gsap.timeline({ defaults: { ease: 'power4.out' } })
+        timeline
+          .fromTo('.menu-panel__wash', { scaleY: 0 }, { scaleY: 1, duration: 0.5, stagger: 0.06 })
+          .fromTo(
+            '.menu-panel__item, .menu-panel__footer',
+            { yPercent: 45, opacity: 0 },
+            { yPercent: 0, opacity: 1, duration: 0.55, stagger: 0.055 },
+            '-=0.24',
+          )
+        return () => timeline.kill()
+      })
 
-      return () => timeline.kill()
+      mm.add(motionQueries.reduceMotion, () => {
+        if (animated) gsap.set(animated, { clearProps: 'all' })
+      })
+
+      return () => mm.revert()
     },
     { scope: rootRef, dependencies: [open], revertOnUpdate: true },
   )
@@ -118,9 +149,21 @@ export function SiteChrome({ currentView, currentSection, onNavigate }: SiteChro
     onNavigate(target)
   }
 
+  const handleSkipToMain = (event: MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault()
+    const main = document.getElementById('main-content')
+    if (!main) return
+    main.scrollIntoView({ block: 'start', behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
+    try {
+      main.focus({ preventScroll: true })
+    } catch {
+      main.focus()
+    }
+  }
+
   return (
     <header className="site-chrome" ref={rootRef}>
-      <a className="skip-link" href="#main-content">跳到主要内容</a>
+      <a className="skip-link" href="#main-content" onClick={handleSkipToMain}>跳到主要内容</a>
       <button className="site-mark" type="button" onClick={() => onNavigate('top')} aria-label="返回首页">
         <span>909</span>
         <small>2025</small>

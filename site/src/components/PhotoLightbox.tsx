@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, type TouchEvent } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, type TouchEvent } from 'react'
 
 import type { GalleryImage } from '../galleryImages'
 import { useModalDialog } from './useModalDialog'
@@ -13,6 +13,41 @@ export type PhotoLightboxProps = {
 
 function wrapIndex(index: number, length: number) {
   return ((index % length) + length) % length
+}
+
+function LightboxMedia({ image }: { image: GalleryImage }) {
+  const [loadedImageId, setLoadedImageId] = useState<string | null>(null)
+  const [failedImageId, setFailedImageId] = useState<string | null>(null)
+  const state = loadedImageId === image.id ? 'loaded' : failedImageId === image.id ? 'error' : 'loading'
+
+  return (
+    <div className="photo-lightbox-media" data-state={state} aria-busy={state === 'loading'}>
+      <img
+        className="photo-lightbox-placeholder"
+        src={image.thumbnailSrc}
+        width={image.thumbnailWidth}
+        height={image.thumbnailHeight}
+        alt=""
+        aria-hidden="true"
+        decoding="async"
+      />
+      <img
+        className="photo-lightbox-image"
+        src={image.src}
+        width={image.width}
+        height={image.height}
+        alt={image.alt}
+        decoding="async"
+        fetchPriority="high"
+        draggable="false"
+        onLoad={() => setLoadedImageId(image.id)}
+        onError={() => setFailedImageId(image.id)}
+      />
+      <span className="photo-lightbox-loading" role="status">
+        {state === 'error' ? '原图加载失败，已显示预览图' : '正在加载原图…'}
+      </span>
+    </div>
+  )
 }
 
 export function PhotoLightbox({ images, index, onChange, onClose, returnFocus }: PhotoLightboxProps) {
@@ -61,6 +96,20 @@ export function PhotoLightbox({ images, index, onChange, onClose, returnFocus }:
     })
   }, [imageCount, images, safeIndex])
 
+  useEffect(() => {
+    const chrome = document.querySelector<HTMLElement>('.site-chrome')
+    if (!chrome) return
+    const previousInert = chrome.inert
+    const previousAriaHidden = chrome.getAttribute('aria-hidden')
+    chrome.inert = true
+    chrome.setAttribute('aria-hidden', 'true')
+    return () => {
+      chrome.inert = previousInert
+      if (previousAriaHidden === null) chrome.removeAttribute('aria-hidden')
+      else chrome.setAttribute('aria-hidden', previousAriaHidden)
+    }
+  }, [])
+
   if (image === undefined) return null
 
   const handleTouchEnd = (event: TouchEvent<HTMLDivElement>) => {
@@ -93,16 +142,7 @@ export function PhotoLightbox({ images, index, onChange, onClose, returnFocus }:
         onTouchEnd={handleTouchEnd}
       >
         <figure className="photo-lightbox-figure">
-          <img
-            className="photo-lightbox-image"
-            src={image.src}
-            width={image.width}
-            height={image.height}
-            alt={image.alt}
-            decoding="async"
-            fetchPriority="high"
-            draggable="false"
-          />
+          <LightboxMedia image={image} />
           <figcaption className="photo-lightbox-meta" id={captionId}>
             <span aria-live="polite" aria-atomic="true">{safeIndex + 1} / {imageCount}</span>
             <span>{image.caption}</span>

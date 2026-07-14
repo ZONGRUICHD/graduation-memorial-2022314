@@ -37,6 +37,7 @@ html {
   scroll-behavior: smooth;
   scrollbar-color: var(--cyan) var(--ink);
   overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -149,8 +150,15 @@ ul {
 }
 
 :focus-visible {
-  outline: 3px solid var(--cyan);
-  outline-offset: 4px;
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px var(--ink);
+}
+
+.season-home:focus,
+.gallery-archive:focus {
+  outline: 0;
+  box-shadow: inset 0 4px 0 var(--cyan);
 }
 
 .sr-only {
@@ -262,7 +270,7 @@ ul {
 .site-mark {
   position: absolute;
   top: max(1rem, env(safe-area-inset-top));
-  left: var(--page-gutter);
+  left: max(var(--page-gutter), env(safe-area-inset-left));
   display: flex;
   align-items: flex-start;
   gap: 0.28rem;
@@ -288,7 +296,7 @@ ul {
 .site-chrome__actions {
   position: absolute;
   top: max(0.75rem, env(safe-area-inset-top));
-  right: var(--page-gutter);
+  right: max(var(--page-gutter), env(safe-area-inset-right));
   display: flex;
   gap: 0.55rem;
 }
@@ -404,6 +412,8 @@ ul {
   grid-template-rows: 1fr auto;
   min-height: 100svh;
   padding: calc(var(--chrome-height) + 2rem) var(--page-gutter) max(1.25rem, env(safe-area-inset-bottom));
+  padding-right: max(var(--page-gutter), env(safe-area-inset-right));
+  padding-left: max(var(--page-gutter), env(safe-area-inset-left));
   overflow: auto;
   color: var(--paper);
   background: var(--ink);
@@ -451,7 +461,7 @@ ul {
   position: fixed;
   z-index: 2;
   top: max(0.75rem, env(safe-area-inset-top));
-  right: var(--page-gutter);
+  right: max(var(--page-gutter), env(safe-area-inset-right));
   display: flex;
   align-items: center;
   gap: 0.7rem;
@@ -780,18 +790,27 @@ ul {
 .manifesto__statement {
   position: relative;
   z-index: 1;
-  max-width: 13ch;
+  width: 100%;
+  max-width: none;
   font-family: "Smiley Display", "PingFang SC", sans-serif;
-  font-size: clamp(3.1rem, 7.6vw, 8.8rem);
-  line-height: 0.98;
-  letter-spacing: -0.045em;
-  text-wrap: balance;
+  font-size: clamp(3rem, 5.5vw, 6.8rem);
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+}
+
+.manifesto__line {
+  display: block;
+  white-space: nowrap;
+}
+
+.manifesto__line-chunk {
+  display: inline;
 }
 
 .manifesto__character-wrap {
   display: inline-block;
   overflow: hidden;
-  vertical-align: top;
+  vertical-align: bottom;
 }
 
 .manifesto__character {
@@ -854,13 +873,16 @@ ul {
 }
 
 .memory-run__heading h2 {
-  max-width: 9ch;
+  width: fit-content;
+  max-width: min(100%, 13ic);
   margin-top: 1.2rem;
+  padding-right: 0.25em;
+  background: linear-gradient(90deg, var(--ink) 88%, transparent);
   font-family: "Smiley Display", "PingFang SC", sans-serif;
-  font-size: clamp(2.6rem, 5vw, 6rem);
+  font-size: clamp(2.5rem, 4.3vw, 5.4rem);
   font-weight: 400;
-  line-height: 0.98;
-  letter-spacing: -0.04em;
+  line-height: 1.06;
+  letter-spacing: -0.025em;
 }
 
 .memory-run__scenes,
@@ -876,7 +898,7 @@ ul {
 
 .memory-scene__media {
   position: absolute;
-  inset: 18% 34% 4% 4%;
+  inset: 25% 34% 4% 4%;
   overflow: hidden;
   background: #092b3d;
 }
@@ -906,11 +928,11 @@ ul {
 
 .memory-scene__number {
   display: block;
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.9rem;
   color: var(--cyan);
   font-family: "Smiley Display", Impact, sans-serif;
   font-size: clamp(6rem, 14vw, 13rem);
-  line-height: 0.68;
+  line-height: 0.84;
   letter-spacing: -0.06em;
 }
 
@@ -923,7 +945,7 @@ ul {
 }
 
 .memory-scene__copy > p {
-  margin-top: 1.3rem;
+  margin-top: 0;
   font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.14em;
@@ -934,7 +956,7 @@ ul {
   font-family: "Smiley Display", "PingFang SC", sans-serif;
   font-size: clamp(2.4rem, 4.5vw, 5rem);
   font-weight: 400;
-  line-height: 0.9;
+  line-height: 1.02;
 }
 
 .memory-scene__copy small {
@@ -1028,7 +1050,7 @@ ul {
   font-family: "Smiley Display", "PingFang SC", sans-serif;
   font-size: clamp(4rem, 8vw, 9rem);
   font-weight: 400;
-  line-height: 0.8;
+  line-height: 0.94;
   letter-spacing: -0.05em;
 }
 
@@ -1059,8 +1081,8 @@ ul {
   font-family: "Smiley Display", "PingFang SC", sans-serif;
   font-size: clamp(3rem, 6.3vw, 7rem);
   font-weight: 400;
-  line-height: 0.93;
-  letter-spacing: -0.05em;
+  line-height: 1.04;
+  letter-spacing: -0.035em;
 }
 
 .quote-rail__viewport {
@@ -1149,12 +1171,12 @@ ul {
 }
 
 .memory-index__heading h2 {
-  max-width: 12ch;
+  max-width: none;
   font-family: "Smiley Display", "PingFang SC", sans-serif;
-  font-size: clamp(3.3rem, 7vw, 8rem);
+  font-size: clamp(3rem, 5.7vw, 7rem);
   font-weight: 400;
-  line-height: 0.91;
-  letter-spacing: -0.055em;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
 }
 
 .memory-index__grid {
@@ -1294,7 +1316,8 @@ ul {
 
 .season-ending__number {
   position: absolute;
-  inset: 50% -1vw auto;
+  z-index: 0;
+  inset: 62% -1vw auto;
   display: flex;
   justify-content: space-between;
   overflow: hidden;
@@ -1303,6 +1326,7 @@ ul {
   line-height: 0.58;
   letter-spacing: -0.12em;
   transform: translateY(-50%);
+  opacity: 0.2;
 }
 
 .season-ending__number span {
@@ -1312,7 +1336,7 @@ ul {
 .season-ending__copy {
   position: relative;
   z-index: 1;
-  max-width: 48rem;
+  max-width: min(64rem, 76vw);
 }
 
 .season-ending__copy > p {
@@ -1324,10 +1348,11 @@ ul {
 
 .season-ending__copy h2 {
   font-family: "Smiley Display", "PingFang SC", sans-serif;
-  font-size: clamp(4rem, 9vw, 10rem);
+  font-size: clamp(4rem, 7.3vw, 8.7rem);
   font-weight: 400;
-  line-height: 0.82;
-  letter-spacing: -0.06em;
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
 }
 
 .season-ending__copy > span {
@@ -1394,22 +1419,40 @@ ul {
 }
 
 .gallery-archive-header h1 {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: auto minmax(0, auto);
   align-items: end;
-  gap: 0 0.18em;
-  max-width: 12ch;
+  gap: 0.18em;
+  width: fit-content;
+  max-width: 100%;
   font-family: "Smiley Display", "PingFang SC", sans-serif;
-  font-size: clamp(4rem, 10vw, 12rem);
+  font-size: clamp(4rem, 8vw, 10rem);
   font-weight: 400;
-  line-height: 0.75;
-  letter-spacing: -0.06em;
+  line-height: 1;
+  letter-spacing: -0.035em;
 }
 
-.gallery-archive-header h1 span {
+.gallery-title__number {
+  display: block;
+  margin-bottom: 0.16em;
   color: var(--blue);
-  font-size: 1.45em;
-  letter-spacing: -0.12em;
+  font-size: 1.15em;
+  line-height: 0.78;
+  letter-spacing: -0.1em;
+}
+
+.gallery-title__label {
+  display: block;
+  line-height: 0.96;
+}
+
+#gallery-title:focus-visible,
+#story-title:focus-visible,
+#quotes-title:focus-visible,
+#photos-title:focus-visible,
+#page-title:focus-visible {
+  outline: 0;
+  box-shadow: -0.08em 0 0 var(--cyan);
 }
 
 .gallery-count {
@@ -1442,7 +1485,7 @@ ul {
 .gallery-filters {
   position: sticky;
   z-index: 10;
-  top: 0;
+  top: var(--chrome-height);
   margin: 0 calc(var(--page-gutter) * -1) 3rem;
   padding: 0 var(--page-gutter);
   border-bottom: 1px solid var(--line-ink);
@@ -1615,6 +1658,34 @@ ul {
   height: 100%;
 }
 
+.photo-lightbox-media {
+  position: relative;
+  align-self: center;
+  justify-self: center;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.photo-lightbox-placeholder,
+.photo-lightbox-image {
+  grid-area: 1 / 1;
+}
+
+.photo-lightbox-placeholder {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: calc(100svh - 13rem);
+  object-fit: contain;
+  filter: blur(10px) saturate(0.72);
+  opacity: 0.72;
+  transform: scale(1.01);
+  transition: opacity 220ms ease;
+}
+
 .photo-lightbox-image {
   align-self: center;
   justify-self: center;
@@ -1624,7 +1695,32 @@ ul {
   max-height: calc(100svh - 13rem);
   object-fit: contain;
   box-shadow: 1.1rem 1.1rem 0 var(--blue);
+  opacity: 0;
+  transition: opacity 220ms ease;
   user-select: none;
+}
+
+.photo-lightbox-media[data-state="loaded"] .photo-lightbox-image {
+  opacity: 1;
+}
+
+.photo-lightbox-media[data-state="loaded"] .photo-lightbox-placeholder {
+  opacity: 0;
+}
+
+.photo-lightbox-loading {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  padding: 0.5rem 0.65rem;
+  color: var(--paper);
+  background: rgba(6, 25, 34, 0.86);
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.photo-lightbox-media[data-state="loaded"] .photo-lightbox-loading {
+  display: none;
 }
 
 .photo-lightbox-meta {
@@ -1757,6 +1853,7 @@ ul {
 }
 
 .quote-archive-header {
+  position: relative;
   display: flex;
   justify-content: space-between;
   gap: 2rem;
@@ -1768,8 +1865,8 @@ ul {
   font-family: "Smiley Display", "PingFang SC", sans-serif;
   font-size: clamp(3.5rem, 8vw, 8rem);
   font-weight: 400;
-  line-height: 0.8;
-  letter-spacing: -0.055em;
+  line-height: 0.96;
+  letter-spacing: -0.035em;
 }
 
 .quote-archive-header h2 span {
@@ -1918,9 +2015,13 @@ ul {
   .hero-scene__number {
     z-index: 3;
     top: 46%;
+    overflow: visible;
     font-size: 54vw;
+    line-height: 0.8;
+    letter-spacing: -0.08em;
     color: var(--paper);
-    mix-blend-mode: difference;
+    mix-blend-mode: normal;
+    text-shadow: 0 2px 0 rgba(6, 25, 34, 0.24);
   }
 
   .hero-scene__meta {
@@ -1959,7 +2060,13 @@ ul {
 
   .manifesto__statement {
     margin-top: 3.5rem;
-    font-size: clamp(3rem, 12.8vw, 6.5rem);
+    font-size: clamp(2rem, 9.9vw, 4.8rem);
+    line-height: 1.1;
+    letter-spacing: -0.018em;
+  }
+
+  .manifesto__mobile-continuation {
+    display: block;
   }
 
   .manifesto__closing {
@@ -1993,7 +2100,10 @@ ul {
   }
 
   .memory-run__heading h2 {
+    max-width: min(100%, 11ic);
     margin-top: 1.5rem;
+    font-size: clamp(2.35rem, 10vw, 4.5rem);
+    line-height: 1.06;
   }
 
   .memory-run__scenes {
@@ -2024,10 +2134,12 @@ ul {
 
   .memory-scene__number {
     font-size: 8rem;
+    line-height: 0.84;
   }
 
   .memory-scene__copy h3 {
     font-size: clamp(2.8rem, 12vw, 5rem);
+    line-height: 1.02;
   }
 
   .track-split {
@@ -2044,6 +2156,7 @@ ul {
 
   .track-panel__copy h3 {
     font-size: clamp(4rem, 20vw, 7rem);
+    line-height: 0.94;
   }
 
   .quote-rail {
@@ -2056,7 +2169,8 @@ ul {
   }
 
   .quote-rail__heading h2 {
-    font-size: clamp(3.2rem, 14vw, 6rem);
+    font-size: clamp(2.75rem, 12vw, 5.5rem);
+    line-height: 1.04;
   }
 
   .quote-rail__heading .magnetic-button {
@@ -2080,7 +2194,8 @@ ul {
   }
 
   .memory-index__heading h2 {
-    font-size: clamp(3.2rem, 14vw, 6rem);
+    font-size: clamp(2rem, 9.8vw, 5.5rem);
+    line-height: 1.22;
   }
 
   .memory-index__grid {
@@ -2109,15 +2224,23 @@ ul {
   }
 
   .season-ending {
-    padding-top: 6rem;
+    padding-top: calc(var(--chrome-height) + 3.5rem);
+  }
+
+  .season-ending__ticker {
+    display: none;
   }
 
   .season-ending__number {
+    top: 58%;
     font-size: 56vw;
+    opacity: 0.16;
   }
 
   .season-ending__copy h2 {
-    font-size: clamp(4rem, 18vw, 7rem);
+    font-size: clamp(2.2rem, 11vw, 7rem);
+    line-height: 1;
+    white-space: nowrap;
   }
 
   .season-ending__actions {
@@ -2133,7 +2256,19 @@ ul {
   }
 
   .gallery-archive-header h1 {
-    font-size: clamp(4rem, 18vw, 8rem);
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+    font-size: clamp(3rem, 15vw, 6rem);
+    line-height: 1;
+  }
+
+  .gallery-title__number {
+    font-size: 1.12em;
+    line-height: 0.78;
+  }
+
+  .gallery-title__label {
+    line-height: 1;
   }
 
   .gallery-home-button {
@@ -2193,14 +2328,24 @@ ul {
   }
 
   .quote-archive-header {
-    align-items: flex-start;
+    display: block;
+    padding-right: 0;
+  }
+
+  .quote-archive-header > div {
+    min-width: 0;
   }
 
   .quote-archive-header h2 {
-    font-size: clamp(3.5rem, 16vw, 6rem);
+    max-width: calc(100% - 3.8rem);
+    font-size: clamp(2.3rem, 11.5vw, 5rem);
+    line-height: 1;
   }
 
   .quote-close {
+    position: absolute;
+    top: 0;
+    right: 0;
     min-width: 3.25rem;
     min-height: 3.25rem;
   }
@@ -2246,10 +2391,6 @@ ul {
     max-width: 13rem;
   }
 
-  .manifesto__statement {
-    max-width: 10ch;
-  }
-
   .gallery-grid {
     gap: 2rem 0.55rem;
   }
@@ -2272,6 +2413,42 @@ ul {
     align-items: flex-start;
     flex-direction: column;
     gap: 0.4rem;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .season-ending {
+    min-height: 34rem;
+    padding-top: calc(var(--chrome-height) + 2rem);
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
+
+  .season-ending__copy h2 {
+    font-size: clamp(2.35rem, 10vmin, 4.5rem);
+  }
+
+  .season-ending__copy > span {
+    max-width: 30rem;
+    margin-top: 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .season-ending__number {
+    top: 54%;
+    opacity: 0.11;
+  }
+
+  .season-ending__actions {
+    position: relative;
+    inset: auto;
+    justify-items: start;
+    margin-top: 2rem;
+  }
+
+  .season-ending__credit {
+    position: relative;
+    inset: auto;
+    margin-top: 2rem;
   }
 }
 

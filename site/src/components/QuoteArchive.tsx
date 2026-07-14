@@ -6,6 +6,7 @@ import { useModalDialog } from './useModalDialog'
 export type QuoteArchiveProps = {
   teacherQuotes: TeacherQuote[]
   onClose: () => void
+  returnFocus?: () => HTMLElement | null
 }
 
 type QuoteStreamProps = {
@@ -27,10 +28,10 @@ function QuoteStream({ name, className, quotes }: QuoteStreamProps) {
   )
 }
 
-export function QuoteArchive({ teacherQuotes, onClose }: QuoteArchiveProps) {
+export function QuoteArchive({ teacherQuotes, onClose, returnFocus }: QuoteArchiveProps) {
   const titleId = useId()
   const descriptionId = useId()
-  const dialogRef = useModalDialog<HTMLDivElement>(onClose)
+  const dialogRef = useModalDialog<HTMLDivElement>(onClose, returnFocus)
   const desktopStreams = useMemo(
     () => Array.from({ length: 3 }, (_, streamIndex) => (
       teacherQuotes.filter((_, quoteIndex) => quoteIndex % 3 === streamIndex)
@@ -68,7 +69,7 @@ export function QuoteArchive({ teacherQuotes, onClose }: QuoteArchiveProps) {
           <div>
             <p className="section-kicker">909 VOICE ARCHIVE · {teacherQuotes.length}</p>
             <h2 id={titleId}>
-              教师名言<span aria-hidden="true">档案</span>
+              教师名言<span>档案</span>
             </h2>
             <p id={descriptionId}>完整收录三年里留在教室中的 {teacherQuotes.length} 句话。</p>
           </div>

@@ -12,7 +12,8 @@
     "test:run": "vitest run",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
-    "test:all": "npm run test:run && npm run test:e2e"
+    "test:all": "npm run test:run && npm run test:e2e",
+    "audit:visual": "node scripts/visual-audit.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

@@ -4,10 +4,8 @@ import { featuredGalleryImages } from '../galleryImages'
 import {
   gsap,
   motionQueries,
-  prefersReducedMotion,
   ScrollTrigger,
   splitGraphemes,
-  supportsDesktopFinePointerMotion,
   useGSAP,
 } from '../motion'
 import { featuredTeacherQuotes } from '../teacherQuotes'
@@ -64,29 +62,32 @@ function MagneticButton({ children, className = '', ...props }: MagneticButtonPr
   useGSAP(
     () => {
       const button = buttonRef.current
-      if (!button || prefersReducedMotion()) return
+      if (!button) return
 
-      if (!supportsDesktopFinePointerMotion()) return
+      const mm = gsap.matchMedia()
+      mm.add(motionQueries.desktopFinePointerMotion, () => {
+        const xTo = gsap.quickTo(button, 'x', { duration: 0.35, ease: 'power3.out' })
+        const yTo = gsap.quickTo(button, 'y', { duration: 0.35, ease: 'power3.out' })
 
-      const xTo = gsap.quickTo(button, 'x', { duration: 0.35, ease: 'power3.out' })
-      const yTo = gsap.quickTo(button, 'y', { duration: 0.35, ease: 'power3.out' })
+        const onMove = (event: PointerEvent) => {
+          const bounds = button.getBoundingClientRect()
+          xTo((event.clientX - bounds.left - bounds.width / 2) * 0.18)
+          yTo((event.clientY - bounds.top - bounds.height / 2) * 0.18)
+        }
+        const onLeave = () => {
+          xTo(0)
+          yTo(0)
+        }
 
-      const onMove = (event: PointerEvent) => {
-        const bounds = button.getBoundingClientRect()
-        xTo((event.clientX - bounds.left - bounds.width / 2) * 0.18)
-        yTo((event.clientY - bounds.top - bounds.height / 2) * 0.18)
-      }
-      const onLeave = () => {
-        xTo(0)
-        yTo(0)
-      }
+        button.addEventListener('pointermove', onMove)
+        button.addEventListener('pointerleave', onLeave)
+        return () => {
+          button.removeEventListener('pointermove', onMove)
+          button.removeEventListener('pointerleave', onLeave)
+        }
+      })
 
-      button.addEventListener('pointermove', onMove)
-      button.addEventListener('pointerleave', onLeave)
-      return () => {
-        button.removeEventListener('pointermove', onMove)
-        button.removeEventListener('pointerleave', onLeave)
-      }
+      return () => mm.revert()
     },
     { scope: buttonRef },
   )
@@ -113,21 +114,25 @@ function HeroScene({ introComplete, onGallery }: Pick<SeasonHomeProps, 'introCom
       const image = root.querySelector<HTMLElement>('.hero-scene__image-wrap img')
       const labels = root.querySelectorAll('.hero-scene__eyebrow, .hero-scene__meta, .hero-scene__scroll')
 
-      if (prefersReducedMotion()) {
-        gsap.set([numberParts, number, imageWrap, image, labels], { clearProps: 'all' })
-        return
-      }
-      if (!introComplete) return
-
-      const intro = gsap.timeline({ defaults: { ease: 'power4.out' } })
-      intro
-        .from(numberParts, { yPercent: 115, rotation: 4, duration: 0.9, stagger: 0.08 })
-        .from(image, { scale: 1.12, duration: 1.1 }, '<0.08')
-        .from(labels, { y: 22, autoAlpha: 0, duration: 0.55, stagger: 0.08 }, '<0.28')
-
       const mm = gsap.matchMedia()
-      mm.add(motionQueries.desktopFinePointer, () => {
-        if (!supportsDesktopFinePointerMotion() || !imageWrap || !stage) return
+      mm.add(motionQueries.allowMotion, () => {
+        if (!introComplete) return
+
+        const intro = gsap.timeline({ defaults: { ease: 'power4.out' } })
+        intro
+          .from(numberParts, { yPercent: 115, rotation: 4, duration: 0.9, stagger: 0.08 })
+          .from(image, { scale: 1.12, duration: 1.1 }, '<0.08')
+          .from(labels, { y: 22, autoAlpha: 0, duration: 0.55, stagger: 0.08 }, '<0.28')
+
+        return () => intro.kill()
+      })
+
+      mm.add(motionQueries.reduceMotion, () => {
+        gsap.set([numberParts, number, imageWrap, image, labels], { clearProps: 'all' })
+      })
+
+      mm.add(motionQueries.desktopFinePointerMotion, () => {
+        if (!imageWrap || !stage) return
 
         const scrollTimeline = gsap.timeline({
           defaults: { ease: 'none' },
@@ -151,7 +156,7 @@ function HeroScene({ introComplete, onGallery }: Pick<SeasonHomeProps, 'introCom
         return () => scrollTimeline.kill()
       })
 
-      mm.add(motionQueries.naturalScroll, () => {
+      mm.add(motionQueries.naturalScrollMotion, () => {
         if (!imageWrap || !number) return
 
         const scrollTimeline = gsap.timeline({
@@ -172,8 +177,8 @@ function HeroScene({ introComplete, onGallery }: Pick<SeasonHomeProps, 'introCom
         return () => scrollTimeline.kill()
       })
 
-      mm.add(motionQueries.desktopFinePointer, () => {
-        if (!supportsDesktopFinePointerMotion() || !imageWrap) return
+      mm.add(motionQueries.desktopFinePointerMotion, () => {
+        if (!imageWrap) return
 
         const imageX = gsap.quickTo(imageWrap, 'x', { duration: 0.65, ease: 'power3.out' })
         const imageY = gsap.quickTo(imageWrap, 'y', { duration: 0.65, ease: 'power3.out' })
@@ -195,10 +200,7 @@ function HeroScene({ introComplete, onGallery }: Pick<SeasonHomeProps, 'introCom
         }
       })
 
-      return () => {
-        intro.kill()
-        mm.revert()
-      }
+      return () => mm.revert()
     },
     { scope: rootRef, dependencies: [introComplete], revertOnUpdate: true },
   )
@@ -261,24 +263,41 @@ function HeroScene({ introComplete, onGallery }: Pick<SeasonHomeProps, 'introCom
 function Manifesto() {
   const rootRef = useRef<HTMLElement>(null)
   const statement = '三年不是一条直线。是铃声、黑板、跑道、合照，也是每一次并肩向前。'
+  const statementLines = [
+    ['三年不是一条直线。'],
+    ['是铃声、黑板、'],
+    ['跑道、合照，'],
+    ['也是每一次', '并肩向前。'],
+  ]
 
   useGSAP(
     () => {
-      if (prefersReducedMotion()) return
+      const characters = rootRef.current?.querySelectorAll('.manifesto__character')
+      if (!characters) return
 
-      gsap.from('.manifesto__character', {
-        yPercent: 105,
-        autoAlpha: 0,
-        rotation: 2,
-        duration: 0.8,
-        ease: 'power4.out',
-        stagger: 0.022,
-        scrollTrigger: {
-          trigger: rootRef.current,
-          start: 'top 72%',
-          once: true,
-        },
+      const mm = gsap.matchMedia()
+      mm.add(motionQueries.allowMotion, () => {
+        const tween = gsap.from(characters, {
+          yPercent: 105,
+          autoAlpha: 0,
+          rotation: 2,
+          duration: 0.8,
+          ease: 'power4.out',
+          stagger: 0.022,
+          scrollTrigger: {
+            trigger: rootRef.current,
+            start: 'top 72%',
+            once: true,
+          },
+        })
+        return () => tween.kill()
       })
+
+      mm.add(motionQueries.reduceMotion, () => {
+        gsap.set(characters, { clearProps: 'all' })
+      })
+
+      return () => mm.revert()
     },
     { scope: rootRef },
   )
@@ -293,9 +312,23 @@ function Manifesto() {
         写给909
       </h2>
       <p className="manifesto__statement" aria-hidden="true">
-        {splitGraphemes(statement).map((character, index) => (
-          <span className="manifesto__character-wrap" key={`${character}-${index}`}>
-            <span className="manifesto__character">{character}</span>
+        {statementLines.map((chunks, lineIndex) => (
+          <span className="manifesto__line" key={chunks.join('')}>
+            {chunks.map((chunk, chunkIndex) => (
+              <span
+                className={chunkIndex === 1 ? 'manifesto__line-chunk manifesto__mobile-continuation' : 'manifesto__line-chunk'}
+                key={chunk}
+              >
+                {splitGraphemes(chunk).map((character, characterIndex) => (
+                  <span
+                    className="manifesto__character-wrap"
+                    key={`${lineIndex}-${chunkIndex}-${character}-${characterIndex}`}
+                  >
+                    <span className="manifesto__character">{character}</span>
+                  </span>
+                ))}
+              </span>
+            ))}
           </span>
         ))}
       </p>
@@ -317,35 +350,61 @@ function MemoryRun() {
       if (!root) return
       const scenes = gsap.utils.toArray<HTMLElement>('.memory-scene', root)
 
-      if (prefersReducedMotion() || !supportsDesktopFinePointerMotion()) {
+      const mm = gsap.matchMedia()
+      mm.add(motionQueries.desktopFinePointerMotion, () => {
+        gsap.set(scenes, { autoAlpha: 0 })
+        gsap.set(scenes[0], { autoAlpha: 1 })
+
+        const timeline = gsap.timeline({
+          defaults: { ease: 'none' },
+          scrollTrigger: {
+            trigger: root,
+            start: 'top top',
+            end: '+=240%',
+            scrub: 0.8,
+            pin: '.memory-run__stage',
+            anticipatePin: 1,
+          },
+        })
+
+        scenes.slice(1).forEach((scene, index) => {
+          const previous = scenes[index]
+          timeline
+            .to(previous.querySelector('img'), { scale: 1.06, duration: 0.55 })
+            .to(previous, { autoAlpha: 0, duration: 0.22 }, '<0.24')
+            .fromTo(scene, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.28 }, '>')
+        })
+
+        return () => {
+          timeline.scrollTrigger?.kill(true)
+          timeline.kill()
+
+          // matchMedia can switch while a scrubbed tween is between scenes.
+          // Remove the presentation-only state synchronously so the natural
+          // mobile layout never inherits an invisible desktop panel.
+          scenes.forEach((scene) => {
+            scene.style.removeProperty('opacity')
+            scene.style.removeProperty('visibility')
+            scene.style.removeProperty('transform')
+            scene.querySelector('img')?.style.removeProperty('transform')
+            if (!scene.style.cssText) scene.removeAttribute('style')
+          })
+        }
+      })
+
+      mm.add(motionQueries.reduceMotion, () => {
         gsap.set(scenes, { clearProps: 'all' })
-        return
-      }
-
-      gsap.set(scenes, { autoAlpha: 0, yPercent: 8 })
-      gsap.set(scenes[0], { autoAlpha: 1, yPercent: 0 })
-
-      const timeline = gsap.timeline({
-        defaults: { ease: 'none' },
-        scrollTrigger: {
-          trigger: root,
-          start: 'top top',
-          end: '+=240%',
-          scrub: 0.8,
-          pin: '.memory-run__stage',
-          anticipatePin: 1,
-        },
       })
 
-      scenes.slice(1).forEach((scene, index) => {
-        const previous = scenes[index]
-        timeline
-          .to(previous.querySelector('img'), { scale: 1.06, duration: 0.7 })
-          .to(previous, { autoAlpha: 0, yPercent: -8, duration: 0.35 }, '<0.36')
-          .fromTo(scene, { autoAlpha: 0, yPercent: 8 }, { autoAlpha: 1, yPercent: 0, duration: 0.38 }, '<0.1')
+      mm.add(motionQueries.naturalScrollMotion, () => {
+        // Desktop scene crossfades are presentation-only. Reassert the
+        // document-flow state whenever the viewport switches to natural
+        // scrolling, including while a scrub is mid-transition.
+        gsap.set(scenes, { clearProps: 'all' })
+        gsap.set(scenes.map((scene) => scene.querySelector('img')).filter(Boolean), { clearProps: 'all' })
       })
 
-      return () => timeline.kill()
+      return () => mm.revert()
     },
     { scope: rootRef },
   )
@@ -392,28 +451,43 @@ function TrackSplit() {
 
   useGSAP(
     () => {
-      if (prefersReducedMotion() || !supportsDesktopFinePointerMotion()) return
+      const root = rootRef.current
+      if (!root) return
+      const images = root.querySelectorAll('img')
+      const mm = gsap.matchMedia()
 
-      gsap.fromTo(
-        '.track-panel--inside img',
-        { yPercent: -5, scale: 1.06 },
-        {
-          yPercent: 5,
-          scale: 1,
-          ease: 'none',
-          scrollTrigger: { trigger: rootRef.current, start: 'top bottom', end: 'bottom top', scrub: 0.8 },
-        },
-      )
-      gsap.fromTo(
-        '.track-panel--outside img',
-        { yPercent: 5, scale: 1.06 },
-        {
-          yPercent: -5,
-          scale: 1,
-          ease: 'none',
-          scrollTrigger: { trigger: rootRef.current, start: 'top bottom', end: 'bottom top', scrub: 0.8 },
-        },
-      )
+      mm.add(motionQueries.desktopFinePointerMotion, () => {
+        const inside = gsap.fromTo(
+          '.track-panel--inside img',
+          { yPercent: -5, scale: 1.06 },
+          {
+            yPercent: 5,
+            scale: 1,
+            ease: 'none',
+            scrollTrigger: { trigger: root, start: 'top bottom', end: 'bottom top', scrub: 0.8 },
+          },
+        )
+        const outside = gsap.fromTo(
+          '.track-panel--outside img',
+          { yPercent: 5, scale: 1.06 },
+          {
+            yPercent: -5,
+            scale: 1,
+            ease: 'none',
+            scrollTrigger: { trigger: root, start: 'top bottom', end: 'bottom top', scrub: 0.8 },
+          },
+        )
+        return () => {
+          inside.kill()
+          outside.kill()
+        }
+      })
+
+      mm.add(motionQueries.reduceMotion, () => {
+        gsap.set(images, { clearProps: 'all' })
+      })
+
+      return () => mm.revert()
     },
     { scope: rootRef },
   )
@@ -475,7 +549,13 @@ function QuoteRail({ onOpenQuotes }: Pick<SeasonHomeProps, 'onOpenQuotes'>) {
       </div>
       <div className="quote-rail__rows" aria-label="精选教师名言">
         {rows.map((row, rowIndex) => (
-          <div className="quote-rail__viewport" key={rowIndex}>
+          <div
+            className="quote-rail__viewport"
+            key={rowIndex}
+            role="group"
+            tabIndex={0}
+            aria-label={`精选名言第 ${rowIndex + 1} 组，聚焦时暂停滚动`}
+          >
             <div className="quote-rail__track" data-direction={rowIndex === 0 ? 'forward' : 'reverse'}>
               {[...row, ...row].map((quote, index) => (
                 <blockquote aria-hidden={index >= row.length ? 'true' : undefined} key={`${quote.id}-${index}`}>
@@ -496,19 +576,42 @@ function MemoryIndex({ onGallery }: Pick<SeasonHomeProps, 'onGallery'>) {
 
   useGSAP(
     () => {
-      if (prefersReducedMotion()) return
-
       const items = gsap.utils.toArray<HTMLElement>('.memory-index__item', rootRef.current)
-      gsap.set(items, { autoAlpha: 0, y: 48 })
-      ScrollTrigger.batch(items, {
-        start: 'top 88%',
-        once: true,
-        interval: 0.08,
-        batchMax: 4,
-        onEnter: (batch) => {
-          gsap.to(batch, { autoAlpha: 1, y: 0, duration: 0.75, stagger: 0.08, ease: 'power3.out' })
-        },
+      const mm = gsap.matchMedia()
+
+      mm.add(motionQueries.allowMotion, () => {
+        gsap.set(items, { autoAlpha: 0, y: 48 })
+        const revealTweens = new Set<gsap.core.Tween>()
+        const triggers = ScrollTrigger.batch(items, {
+          start: 'top 88%',
+          once: true,
+          interval: 0.08,
+          batchMax: 4,
+          onEnter: (batch) => {
+            const tween = gsap.to(batch, {
+              autoAlpha: 1,
+              y: 0,
+              duration: 0.75,
+              stagger: 0.08,
+              ease: 'power3.out',
+              onComplete: () => revealTweens.delete(tween),
+            })
+            revealTweens.add(tween)
+          },
+        })
+
+        return () => {
+          triggers.forEach((trigger) => trigger.kill())
+          revealTweens.forEach((tween) => tween.kill())
+          revealTweens.clear()
+        }
       })
+
+      mm.add(motionQueries.reduceMotion, () => {
+        gsap.set(items, { clearProps: 'all' })
+      })
+
+      return () => mm.revert()
     },
     { scope: rootRef },
   )
@@ -562,14 +665,26 @@ function SeasonEnding({ onGallery }: Pick<SeasonHomeProps, 'onGallery'>) {
 
   useGSAP(
     () => {
-      if (prefersReducedMotion()) return
-      gsap.from('.season-ending__number span', {
-        yPercent: 110,
-        duration: 0.9,
-        stagger: 0.08,
-        ease: 'power4.out',
-        scrollTrigger: { trigger: rootRef.current, start: 'top 70%', once: true },
+      const digits = rootRef.current?.querySelectorAll('.season-ending__number span')
+      if (!digits) return
+      const mm = gsap.matchMedia()
+
+      mm.add(motionQueries.allowMotion, () => {
+        const tween = gsap.from(digits, {
+          yPercent: 110,
+          duration: 0.9,
+          stagger: 0.08,
+          ease: 'power4.out',
+          scrollTrigger: { trigger: rootRef.current, start: 'top 70%', once: true },
+        })
+        return () => tween.kill()
       })
+
+      mm.add(motionQueries.reduceMotion, () => {
+        gsap.set(digits, { clearProps: 'all' })
+      })
+
+      return () => mm.revert()
     },
     { scope: rootRef },
   )
@@ -602,7 +717,7 @@ function SeasonEnding({ onGallery }: Pick<SeasonHomeProps, 'onGallery'>) {
 
 export function SeasonHome({ introComplete, onOpenQuotes, onGallery }: SeasonHomeProps) {
   return (
-    <main className="season-home" id="main-content">
+    <main className="season-home" id="main-content" tabIndex={-1}>
       <HeroScene introComplete={introComplete} onGallery={onGallery} />
       <Manifesto />
       <MemoryRun />

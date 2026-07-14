@@ -51,9 +51,11 @@ function App() {
   const [route, setRoute] = useState<Route>(routeFromLocation)
   const [showQuotes, setShowQuotes] = useState(false)
   const [introComplete, setIntroComplete] = useState(() => !shouldPlayIntro())
+  const quoteTriggerRef = useRef<HTMLButtonElement | null>(null)
   const scrollBehaviorRef = useRef<ScrollBehavior>('auto')
   const scrollRequestRef = useRef(0)
   const handleIntroComplete = useCallback(() => setIntroComplete(true), [])
+  const getQuoteTrigger = useCallback(() => quoteTriggerRef.current, [])
 
   const scrollToRoute = useCallback((nextRoute: Route, behavior: ScrollBehavior) => {
     const requestId = ++scrollRequestRef.current
@@ -157,13 +159,20 @@ function App() {
         ) : (
           <SeasonHome
             introComplete={introComplete}
-            onOpenQuotes={() => setShowQuotes(true)}
+            onOpenQuotes={(trigger) => {
+              quoteTriggerRef.current = trigger
+              setShowQuotes(true)
+            }}
             onGallery={() => navigate('gallery')}
           />
         )}
       </div>
       {showQuotes ? (
-        <QuoteArchive teacherQuotes={teacherQuotes} onClose={() => setShowQuotes(false)} />
+        <QuoteArchive
+          teacherQuotes={teacherQuotes}
+          onClose={() => setShowQuotes(false)}
+          returnFocus={getQuoteTrigger}
+        />
       ) : null}
     </div>
   )

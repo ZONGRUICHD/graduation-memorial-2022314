@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test'
 
-const functionalTests = /^(?!.*@(?:reduced|wide-touch))/
-const touchTests = /^(?!.*@(?:reduced|mobile-only|wide-touch))/
+const functionalTests = /^(?!.*@(?:reduced|wide-touch|desktop-only))/
+const touchTests = /^(?!.*@(?:reduced|mobile-only|wide-touch|desktop-only))/
 const standardTests = /^(?!.*@(?:reduced|touch|mobile-only|wide-touch))/
 
 export default defineConfig({
